@@ -1,0 +1,206 @@
+"use client";
+
+import { create } from "zustand";
+import { nanoid } from "nanoid";
+import type { Column, Deck, FeedItem } from "@/lib/columns/types";
+import {
+  createColumn as serverCreateColumn,
+  createDeck as serverCreateDeck,
+  deleteColumn as serverDeleteColumn,
+  deleteDeck as serverDeleteDeck,
+  persistFetchedItems as serverPersistItems,
+  renameColumn as serverRenameColumn,
+  renameDeck as serverRenameDeck,
+  reorderColumnsInDeck as serverReorderColumns,
+  reorderDecks as serverReorderDecks,
+  updateColumnConfig as serverUpdateConfig,
+  type Snapshot,
+} from "@/app/actions";
+
+const MAX_ITEMS_PER_COLUMN = 200;
+
+interface DeckState {
+  hydrated: boolean;
+  decks: Record<string, Deck>;
+  deckOrder: string[];
+  activeDeckId: string | null;
+  columns: Record<string, Column>;
+
+  hydrate: (snapshot: Snapshot) => void;
+
+  addDeck: (name: string) => string;
+  renameDeck: (deckId: string, name: string) => void;
+  deleteDeck: (deckId: string) => void;
+  reorderDecks: (order: string[]) => void;
+  setActiveDeck: (deckId: string) => void;
+
+  addColumn: (
+    deckId: string,
+    typeId: string,
+    title: string,
+    config: Record<string, unknown>,
+  ) => string;
+  updateColumnConfig: (columnId: string, config: Record<string, unknown>) => void;
+  renameColumn: (columnId: string, title: string) => void;
+  removeColumn: (columnId: string) => void;
+  reorderColumnsInDeck: (deckId: string, order: string[]) => void;
+
+  applyFetchedItems: (columnId: string, items: FeedItem[]) => Promise<number>;
+}
+
+function fireAndLog<T>(label: string, p: Promise<T>) {
+  p.catch((err) => {
+    console.error(`[minitor] server action "${label}" failed:`, err);
+  });
+}
+
+export const useDeckStore = create<DeckState>()((set, get) => ({
+  hydrated: false,
+  decks: {},
+  deckOrder: [],
+  activeDeckId: null,
+  columns: {},
+
+  hydrate: (snapshot) =>
+    set((s) => ({
+      decks: snapshot.decks,
+      deckOrder: snapshot.deckOrder,
+      columns: snapshot.columns,
+      activeDeckId:
+        s.activeDeckId && snapshot.deckOrder.includes(s.activeDeckId)
+          ? s.activeDeckId
+          : (snapshot.deckOrder[0] ?? null),
+      hydrated: true,
+    })),
+
+  addDeck: (name) => {
+    const id = nanoid();
+    set((s) => ({
+      decks: { ...s.decks, [id]: { id, name, columnIds: [] } },
+      deckOrder: [...s.deckOrder, id],
+      activeDeckId: s.activeDeckId ?? id,
+    }));
+    fireAndLog("createDeck", serverCreateDeck(id, name));
+    return id;
+  },
+
+  renameDeck: (deckId, name) => {
+    set((s) => {
+      const deck = s.decks[deckId];
+      if (!deck) return s;
+      return { decks: { ...s.decks, [deckId]: { ...deck, name } } };
+    });
+    fireAndLog("renameDeck", serverRenameDeck(deckId, name));
+  },
+
+  deleteDeck: (deckId) => {
+    set((s) => {
+      const deck = s.decks[deckId];
+      if (!deck) return s;
+      const decks = { ...s.decks };
+      delete decks[deckId];
+      const cols = { ...s.columns };
+      for (const cid of deck.columnIds) delete cols[cid];
+      const deckOrder = s.deckOrder.filter((id) => id !== deckId);
+      let activeDeckId = s.activeDeckId;
+      if (activeDeckId === deckId) activeDeckId = deckOrder[0] ?? null;
+      return { decks, columns: cols, deckOrder, activeDeckId };
+    });
+    fireAndLog("deleteDeck", serverDeleteDeck(deckId));
+  },
+
+  reorderDecks: (order) => {
+    set({ deckOrder: order });
+    fireAndLog("reorderDecks", serverReorderDecks(order));
+  },
+
+  setActiveDeck: (deckId) => set({ activeDeckId: deckId }),
+
+  addColumn: (deckId, typeId, title, config) => {
+    const id = nanoid();
+    set((s) => {
+      const deck = s.decks[deckId];
+      if (!deck) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [id]: { id, typeId, title, config, items: [] },
+        },
+        decks: {
+          ...s.decks,
+          [deckId]: { ...deck, columnIds: [...deck.columnIds, id] },
+        },
+      };
+    });
+    fireAndLog("createColumn", serverCreateColumn(id, deckId, typeId, title, config));
+    return id;
+  },
+
+  updateColumnConfig: (columnId, config) => {
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return { columns: { ...s.columns, [columnId]: { ...col, config } } };
+    });
+    fireAndLog("updateColumnConfig", serverUpdateConfig(columnId, config));
+  },
+
+  renameColumn: (columnId, title) => {
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return { columns: { ...s.columns, [columnId]: { ...col, title } } };
+    });
+    fireAndLog("renameColumn", serverRenameColumn(columnId, title));
+  },
+
+  removeColumn: (columnId) => {
+    set((s) => {
+      if (!s.columns[columnId]) return s;
+      const cols = { ...s.columns };
+      delete cols[columnId];
+      const decks = { ...s.decks };
+      for (const [did, d] of Object.entries(s.decks)) {
+        if (d.columnIds.includes(columnId)) {
+          decks[did] = {
+            ...d,
+            columnIds: d.columnIds.filter((id) => id !== columnId),
+          };
+        }
+      }
+      return { columns: cols, decks };
+    });
+    fireAndLog("deleteColumn", serverDeleteColumn(columnId));
+  },
+
+  reorderColumnsInDeck: (deckId, order) => {
+    set((s) => {
+      const deck = s.decks[deckId];
+      if (!deck) return s;
+      return { decks: { ...s.decks, [deckId]: { ...deck, columnIds: order } } };
+    });
+    fireAndLog("reorderColumnsInDeck", serverReorderColumns(deckId, order));
+  },
+
+  applyFetchedItems: async (columnId, items) => {
+    const before = get().columns[columnId];
+    if (!before) return 0;
+    const { newCount, lastFetchedAt } = await serverPersistItems(columnId, items);
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      const seen = new Set(col.items.map((i) => i.id));
+      const fresh = items.filter((i) => !seen.has(i.id));
+      const combined = [...fresh, ...col.items]
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        .slice(0, MAX_ITEMS_PER_COLUMN);
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: { ...col, items: combined, lastFetchedAt },
+        },
+      };
+    });
+    return newCount;
+  },
+}));

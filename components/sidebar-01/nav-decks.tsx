@@ -1,0 +1,246 @@
+"use client";
+
+import { ChevronDown, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { getColumnType } from "@/lib/columns/registry";
+import { useDeckStore } from "@/lib/store/use-deck-store";
+import { RenameDialog } from "@/components/dialogs/rename-dialog";
+import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
+import { AddColumnDialog } from "@/components/column/add-column-dialog";
+
+export function focusColumn(columnId: string) {
+  if (typeof window === "undefined") return;
+  const el = document.getElementById(`column-${columnId}`);
+  el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+}
+
+export function NavDecks() {
+  const decks = useDeckStore((s) => s.decks);
+  const deckOrder = useDeckStore((s) => s.deckOrder);
+  const activeDeckId = useDeckStore((s) => s.activeDeckId);
+  const columns = useDeckStore((s) => s.columns);
+  const setActiveDeck = useDeckStore((s) => s.setActiveDeck);
+  const renameDeck = useDeckStore((s) => s.renameDeck);
+  const deleteDeck = useDeckStore((s) => s.deleteDeck);
+  const renameColumn = useDeckStore((s) => s.renameColumn);
+  const removeColumn = useDeckStore((s) => s.removeColumn);
+
+  const [renameDeckId, setRenameDeckId] = useState<string | null>(null);
+  const [renameColumnId, setRenameColumnId] = useState<string | null>(null);
+  const [addColumnDeckId, setAddColumnDeckId] = useState<string | null>(null);
+  const [deleteDeckId, setDeleteDeckId] = useState<string | null>(null);
+  const [deleteColumnId, setDeleteColumnId] = useState<string | null>(null);
+
+  return (
+    <>
+      {deckOrder.map((deckId) => {
+        const deck = decks[deckId];
+        if (!deck) return null;
+        const isActive = deckId === activeDeckId;
+
+        return (
+          <Collapsible
+            key={deckId}
+            defaultOpen={isActive}
+            className="group/collapsible"
+          >
+            <SidebarGroup className="py-1">
+              <SidebarGroupLabel
+                className={cn(
+                  "gap-1 pr-9 pl-2 text-[11px] font-medium uppercase tracking-wide hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                  isActive && "text-sidebar-foreground",
+                )}
+                render={<CollapsibleTrigger />}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-1.5 rounded-full",
+                    isActive ? "bg-[color:var(--brand)]" : "bg-sidebar-foreground/30",
+                  )}
+                />
+                <span className="truncate normal-case tracking-normal">
+                  {deck.name}
+                </span>
+                <span className="ml-1 text-[10px] font-normal text-sidebar-foreground/50 tabular-nums">
+                  {deck.columnIds.length}
+                </span>
+                <ChevronDown className="ml-auto size-3.5 transition-[transform,opacity] group-data-[state=open]/collapsible:rotate-180 group-hover/collapsible:opacity-0" />
+              </SidebarGroupLabel>
+
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {deck.columnIds.map((cid) => {
+                      const col = columns[cid];
+                      if (!col) return null;
+                      const type = getColumnType(col.typeId);
+                      const Icon = type?.icon;
+                      const accent = type?.accent ?? "#999";
+
+                      return (
+                        <SidebarMenuItem key={cid} className="group/item">
+                          <SidebarMenuButton
+                            onClick={() => {
+                              if (!isActive) setActiveDeck(deckId);
+                              requestAnimationFrame(() => focusColumn(cid));
+                            }}
+                            className="gap-2"
+                          >
+                            <span
+                              className="flex size-5 shrink-0 items-center justify-center rounded-[4px]"
+                              style={{
+                                backgroundColor: `${accent}33`,
+                                color: accent,
+                              }}
+                            >
+                              {Icon ? (
+                                <Icon className="size-3" strokeWidth={2.5} />
+                              ) : null}
+                            </span>
+                            <span className="truncate">{col.title}</span>
+                          </SidebarMenuButton>
+                          <DropdownMenu>
+                            <SidebarMenuAction
+                              aria-label="Column options"
+                              render={<DropdownMenuTrigger />}
+                            >
+                              <MoreHorizontal className="size-3.5" />
+                            </SidebarMenuAction>
+                            <DropdownMenuContent side="right" align="start">
+                              <DropdownMenuItem
+                                onSelect={() => setRenameColumnId(cid)}
+                              >
+                                <Pencil className="mr-2 size-4" /> Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => setDeleteColumnId(cid)}
+                              >
+                                <Trash2 className="mr-2 size-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </SidebarMenuItem>
+                      );
+                    })}
+
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        className="gap-2 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                        onClick={() => {
+                          if (!isActive) setActiveDeck(deckId);
+                          setAddColumnDeckId(deckId);
+                        }}
+                      >
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-[4px] border border-dashed border-sidebar-foreground/30">
+                          <Plus className="size-3" />
+                        </span>
+                        <span>Add column</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={`${deck.name} options`}
+                  className="absolute right-1.5 top-1 inline-flex size-5 items-center justify-center rounded text-sidebar-foreground/50 opacity-0 transition-opacity hover:bg-sidebar-accent/70 hover:text-sidebar-foreground group-hover/collapsible:opacity-100 data-[popup-open]:opacity-100"
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start">
+                  <DropdownMenuItem onSelect={() => setRenameDeckId(deckId)}>
+                    <Pencil className="mr-2 size-4" /> Rename deck
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => setDeleteDeckId(deckId)}
+                  >
+                    <Trash2 className="mr-2 size-4" /> Delete deck
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarGroup>
+          </Collapsible>
+        );
+      })}
+
+      <RenameDialog
+        open={renameDeckId !== null}
+        onOpenChange={(o) => !o && setRenameDeckId(null)}
+        title="Rename deck"
+        initialValue={renameDeckId ? (decks[renameDeckId]?.name ?? "") : ""}
+        onSubmit={(next) => {
+          if (renameDeckId) renameDeck(renameDeckId, next);
+        }}
+      />
+      <RenameDialog
+        open={renameColumnId !== null}
+        onOpenChange={(o) => !o && setRenameColumnId(null)}
+        title="Rename column"
+        initialValue={
+          renameColumnId ? (columns[renameColumnId]?.title ?? "") : ""
+        }
+        onSubmit={(next) => {
+          if (renameColumnId) renameColumn(renameColumnId, next);
+        }}
+      />
+      {addColumnDeckId && (
+        <AddColumnDialog
+          open
+          onOpenChange={(o) => !o && setAddColumnDeckId(null)}
+          deckId={addColumnDeckId}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteDeckId !== null}
+        onOpenChange={(o) => !o && setDeleteDeckId(null)}
+        title={`Delete ${deleteDeckId ? decks[deleteDeckId]?.name : "deck"}?`}
+        description="All columns in this deck and their stored items will be removed from Neon. This can't be undone."
+        confirmLabel="Delete deck"
+        onConfirm={() => {
+          if (deleteDeckId) deleteDeck(deleteDeckId);
+          setDeleteDeckId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={deleteColumnId !== null}
+        onOpenChange={(o) => !o && setDeleteColumnId(null)}
+        title={`Delete ${deleteColumnId ? columns[deleteColumnId]?.title : "column"}?`}
+        description="Stored items for this column will be removed from Neon. The column type is not affected."
+        confirmLabel="Delete column"
+        onConfirm={() => {
+          if (deleteColumnId) removeColumn(deleteColumnId);
+          setDeleteColumnId(null);
+        }}
+      />
+    </>
+  );
+}

@@ -1,26 +1,278 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Cursor-inspired warm cream palette */
+  --background: #f2f1ed;            /* Surface 200 — page bg */
+  --foreground: #26251e;            /* warm near-black */
+  --surface: #ebeae5;               /* Surface 300 — buttons, subtle cards */
+  --surface-elevated: #e6e5e0;      /* Surface 400 — cards, secondary */
+  --card: #e6e5e0;
+  --card-foreground: #26251e;
+  --popover: #f7f7f4;               /* Surface 100 — lightest */
+  --popover-foreground: #26251e;
+  --primary: #26251e;
+  --primary-foreground: #f2f1ed;
+  --secondary: #ebeae5;
+  --secondary-foreground: #26251e;
+  --muted: #ebeae5;
+  --muted-foreground: rgba(38, 37, 30, 0.55);
+  --accent: #e1e0db;                /* Surface 500 — tertiary */
+  --accent-foreground: #26251e;
+  --destructive: #cf2d56;           /* warm crimson */
+  --border: oklab(0.263084 -0.00230259 0.0124794 / 0.1);
+  --input: oklab(0.263084 -0.00230259 0.0124794 / 0.2);
+  --ring: rgba(38, 37, 30, 0.3);
+  --brand: #f54e00;                 /* Cursor orange */
+  --brand-hover: #cf2d56;           /* warm crimson hover */
+
+  /* Semantic feature accents (from the Cursor timeline palette) */
+  --chart-1: #9fbbe0;               /* read — soft blue */
+  --chart-2: #9fc9a2;               /* grep — sage */
+  --chart-3: #c0a8dd;               /* edit — lavender */
+  --chart-4: #dfa88f;               /* thinking — peach */
+  --chart-5: #c08532;               /* gold */
+
+  --radius: 8px;
+
+  --sidebar: #ebeae5;
+  --sidebar-foreground: #26251e;
+  --sidebar-primary: #26251e;
+  --sidebar-primary-foreground: #f2f1ed;
+  --sidebar-accent: #e6e5e0;
+  --sidebar-accent-foreground: #26251e;
+  --sidebar-border: oklab(0.263084 -0.00230259 0.0124794 / 0.1);
+  --sidebar-ring: rgba(38, 37, 30, 0.3);
+
+  /* Editorial serif stack, used for body moments on feed content */
+  --font-serif:
+    var(--font-serif), "Instrument Serif", "Iowan Old Style", "Palatino Linotype",
+    "URW Palladio L", P052, ui-serif, Georgia, Cambria, "Times New Roman", Times,
+    serif;
+}
+
+/* Keep .dark a no-op override so any residual `dark` class doesn't flip us back */
+.dark {
+  --background: #f2f1ed;
+  --foreground: #26251e;
+  --surface: #ebeae5;
+  --surface-elevated: #e6e5e0;
+  --card: #e6e5e0;
+  --card-foreground: #26251e;
+  --popover: #f7f7f4;
+  --popover-foreground: #26251e;
+  --primary: #26251e;
+  --primary-foreground: #f2f1ed;
+  --secondary: #ebeae5;
+  --secondary-foreground: #26251e;
+  --muted: #ebeae5;
+  --muted-foreground: rgba(38, 37, 30, 0.55);
+  --accent: #e1e0db;
+  --accent-foreground: #26251e;
+  --destructive: #cf2d56;
+  --border: oklab(0.263084 -0.00230259 0.0124794 / 0.1);
+  --input: oklab(0.263084 -0.00230259 0.0124794 / 0.2);
+  --ring: rgba(38, 37, 30, 0.3);
+  --brand: #f54e00;
+  --brand-hover: #cf2d56;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html {
+    @apply font-sans;
+  }
+
+  /* Display headlines get aggressive tracking */
+  .display-xl {
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .display-lg {
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .display-md {
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
+  /* Warm, subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(38, 37, 30, 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(38, 37, 30, 0.22);
+  }
+  ::selection {
+    background: rgba(245, 78, 0, 0.18);
+    color: #26251e;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* ---- Flowing conic-gradient border (beam replacement) ---- */
+@property --beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes beam-spin {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+.beam-frame {
+  position: relative;
+  isolation: isolate;
+  padding: 1px;
+  border-radius: var(--beam-radius, 10px);
+  background-color: transparent;
+  transition: background 300ms ease;
+}
+
+.beam-frame > * {
+  border-radius: calc(var(--beam-radius, 10px) - 1px);
+}
+
+/*
+ * Continuous rainbow rim — rotates via --beam-angle.
+ * Colors are written without explicit angle stops so conic-gradient interpolates
+ * evenly, matching border-beam's smooth hue-shift feel. Base alpha is low (~0.4)
+ * on light backgrounds (mirrors border-beam's strokeOpacity: 0.33 for light
+ * theme) so the beam reads as a colored sheen rather than a painted ring.
+ */
+.beam-frame[data-beam-active="true"] {
+  background: conic-gradient(
+    from var(--beam-angle),
+    rgba(255, 80, 120, 0.45),
+    rgba(255, 140, 60, 0.4),
+    rgba(255, 210, 80, 0.35),
+    rgba(80, 200, 140, 0.4),
+    rgba(60, 170, 255, 0.45),
+    rgba(130, 90, 255, 0.45),
+    rgba(240, 80, 200, 0.45),
+    rgba(255, 80, 120, 0.45)
+  );
+  animation: beam-spin var(--beam-duration, 3s) linear infinite;
+}
+
+.beam-frame[data-beam-active="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--beam-radius, 10px) + 3px);
+  background: conic-gradient(
+    from var(--beam-angle),
+    rgba(255, 80, 120, 0.22),
+    rgba(255, 140, 60, 0.18),
+    rgba(255, 210, 80, 0.14),
+    rgba(80, 200, 140, 0.18),
+    rgba(60, 170, 255, 0.22),
+    rgba(130, 90, 255, 0.22),
+    rgba(240, 80, 200, 0.22),
+    rgba(255, 80, 120, 0.22)
+  );
+  filter: blur(8px);
+  opacity: 0.6;
+  z-index: -1;
+  pointer-events: none;
+  animation: beam-spin var(--beam-duration, 3s) linear infinite;
+}
+
+/* Grok Ask: same palette rotated so it starts cool (purple/blue = AI) */
+.beam-frame[data-beam-variant="grok"][data-beam-active="true"] {
+  background: conic-gradient(
+    from var(--beam-angle),
+    rgba(130, 90, 255, 0.45),
+    rgba(60, 170, 255, 0.45),
+    rgba(80, 200, 180, 0.4),
+    rgba(255, 210, 80, 0.35),
+    rgba(255, 140, 60, 0.4),
+    rgba(240, 80, 200, 0.45),
+    rgba(130, 90, 255, 0.45)
+  );
+}
+
+.beam-frame[data-beam-variant="grok"][data-beam-active="true"]::after {
+  background: conic-gradient(
+    from var(--beam-angle),
+    rgba(130, 90, 255, 0.22),
+    rgba(60, 170, 255, 0.22),
+    rgba(80, 200, 180, 0.18),
+    rgba(255, 210, 80, 0.14),
+    rgba(255, 140, 60, 0.18),
+    rgba(240, 80, 200, 0.22),
+    rgba(130, 90, 255, 0.22)
+  );
 }
