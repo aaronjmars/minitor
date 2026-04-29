@@ -35,19 +35,25 @@ export function NavFooter() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
+              <DropdownMenuTrigger className="flex h-8 w-full items-center justify-end gap-2 rounded-md px-2 text-right text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
                 <Plus className="size-4" />
                 <span>Add new</span>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="w-48">
+              <DropdownMenuContent side="top" align="end" className="w-auto">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>Create</DropdownMenuLabel>
-                  <DropdownMenuItem onSelect={() => setNewDeckOpen(true)}>
+                  <DropdownMenuLabel className="text-right">
+                    Create
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    className="justify-end"
+                    onClick={() => setNewDeckOpen(true)}
+                  >
                     <Plus className="mr-2 size-4" /> New deck
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onSelect={() => setAddColOpen(true)}
+                    className="justify-end"
+                    onClick={() => setAddColOpen(true)}
                     disabled={!activeDeckId}
                   >
                     <Plus className="mr-2 size-4" /> Add column

@@ -78,7 +78,7 @@ export function DeckTabs() {
                     name={deck.name}
                     columnCount={deck.columnIds.length}
                     active={id === activeDeckId}
-                    onSelect={() => setActiveDeck(id)}
+                    onClick={() => setActiveDeck(id)}
                   />
                 );
               })}
@@ -196,11 +196,11 @@ function DeckTab({
             <MoreHorizontal className="size-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+            <DropdownMenuItem onClick={() => setRenameOpen(true)}>
               <Pencil className="mr-2 size-4" /> Rename
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => deleteDeck(id)}>
+            <DropdownMenuItem variant="destructive" onClick={() => deleteDeck(id)}>
               <Trash2 className="mr-2 size-4" /> Delete
             </DropdownMenuItem>
           </DropdownMenuContent>

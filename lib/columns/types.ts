@@ -25,6 +25,12 @@ export interface ItemRendererProps {
   item: FeedItem;
 }
 
+export interface PageResult {
+  items: FeedItem[];
+  /** Opaque cursor for the next page, or undefined when exhausted. */
+  nextCursor?: string;
+}
+
 export interface ColumnType<TConfig extends Record<string, unknown> = Record<string, unknown>> {
   id: string;
   label: string;
@@ -36,6 +42,17 @@ export interface ColumnType<TConfig extends Record<string, unknown> = Record<str
   ConfigForm: ComponentType<ConfigFormProps<TConfig>>;
   ItemRenderer: ComponentType<ItemRendererProps>;
   fetch: (config: TConfig) => Promise<FeedItem[]>;
+  /**
+   * Optional pagination. When defined, the column-card will:
+   *  1. Call `fetchPage(config)` for the initial fetch and stash `nextCursor`.
+   *  2. Show a "Load more" button while `nextCursor !== undefined`.
+   *  3. On click, call `fetchPage(config, cursor)` with the latest cursor,
+   *     append items, replace the cursor.
+   *
+   * Integrations that don't paginate naturally (RSS, X-via-Grok, etc.) leave
+   * this undefined — those columns get no Load More button.
+   */
+  fetchPage?: (config: TConfig, cursor?: string) => Promise<PageResult>;
 }
 
 export interface Column {

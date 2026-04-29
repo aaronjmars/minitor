@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowBigUp, MessageSquareText, Flame } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
+import { ArrowBigUp, MessageSquareText, MessageCircle } from "lucide-react";
+import { RelativeTime } from "@/components/relative-time";
 import type { ColumnType, FeedItem } from "@/lib/columns/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +87,7 @@ function ItemRenderer({ item }: { item: FeedItem }) {
             className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium text-foreground ring-1 ring-black/5"
             style={{ backgroundColor: "rgba(245, 78, 0, 0.14)" }}
           >
-            <Flame className="size-3 text-[color:var(--brand)]" />
+            <MessageCircle className="size-3 text-[color:var(--brand)]" />
             r/{subreddit}
           </span>
         )}
@@ -96,7 +96,7 @@ function ItemRenderer({ item }: { item: FeedItem }) {
         </span>
         <span className="text-muted-foreground/50">·</span>
         <span className="tabular-nums">
-          {formatDistanceToNowStrict(new Date(item.createdAt), { addSuffix: true })}
+          <RelativeTime date={item.createdAt} addSuffix />
         </span>
       </div>
       <h3
@@ -119,26 +119,40 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchItems(config: RedditConfig): Promise<FeedItem[]> {
+async function fetchPage(
+  config: RedditConfig,
+  cursor?: string,
+): Promise<{ items: FeedItem[]; nextCursor?: string }> {
   const res = await fetch("/api/columns/reddit", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
+    body: JSON.stringify({
+      config,
+      ...(cursor !== undefined ? { op: "loadMore", cursor } : {}),
+    }),
   });
-  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as { items: FeedItem[]; nextCursor?: string };
+}
+
+async function fetchItems(config: RedditConfig): Promise<FeedItem[]> {
+  const { items } = await fetchPage(config);
+  return items;
 }
 
 export const redditType: ColumnType<RedditConfig> = {
   id: "reddit",
   label: "Reddit · Subreddit",
   description: "Monitor new posts in a subreddit.",
-  icon: Flame,
+  icon: MessageCircle,
   accent: "#ff4500",
   defaultConfig: DEFAULT,
   defaultTitle: (c) => (c.subreddit?.trim() ? `r/${c.subreddit}` : "Reddit · Subreddit"),
   ConfigForm,
   ItemRenderer,
   fetch: fetchItems,
+  fetchPage,
 };

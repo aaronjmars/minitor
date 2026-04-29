@@ -44,7 +44,10 @@ function avatarFor(handle: string): string {
   const clean = handle.replace(/^@/, "");
   let cached = AVATAR_CACHE.get(clean);
   if (!cached) {
-    cached = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(clean)}`;
+    // unavatar proxies the real X profile picture; falls back to a stable
+    // dicebear avatar when the handle has no public avatar / doesn't exist.
+    const fallback = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(clean)}`;
+    cached = `https://unavatar.io/x/${encodeURIComponent(clean)}?fallback=${encodeURIComponent(fallback)}`;
     AVATAR_CACHE.set(clean, cached);
   }
   return cached;

@@ -80,9 +80,9 @@ export function DeckView() {
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md">
           <SidebarTrigger className="size-8" />
           <div className="h-5 w-px bg-border" />
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-3.5">
             <span
-              className="truncate pb-1 font-serif text-[20px] leading-[1.2] italic text-foreground"
+              className="pb-1 font-serif text-[20px] leading-[1.2] italic text-foreground"
               style={{ letterSpacing: "-0.01em" }}
             >
               {activeDeck?.name ?? "Minitor"}

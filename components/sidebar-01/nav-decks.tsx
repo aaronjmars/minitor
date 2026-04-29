@@ -54,6 +54,16 @@ export function NavDecks() {
   const [deleteDeckId, setDeleteDeckId] = useState<string | null>(null);
   const [deleteColumnId, setDeleteColumnId] = useState<string | null>(null);
 
+  // Per-deck explicit open overrides. Decks not in this map fall back to
+  // "open if active". Once the user toggles a deck, the override sticks.
+  const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
+  const isDeckOpen = (deckId: string) =>
+    deckId in openOverrides ? openOverrides[deckId] : deckId === activeDeckId;
+  const setDeckOpen = (deckId: string, open: boolean) =>
+    setOpenOverrides((prev) => ({ ...prev, [deckId]: open }));
+
   return (
     <>
       {deckOrder.map((deckId) => {
@@ -64,7 +74,8 @@ export function NavDecks() {
         return (
           <Collapsible
             key={deckId}
-            defaultOpen={isActive}
+            open={isDeckOpen(deckId)}
+            onOpenChange={(open) => setDeckOpen(deckId, open)}
             className="group/collapsible"
           >
             <SidebarGroup className="py-1">
@@ -131,14 +142,14 @@ export function NavDecks() {
                             </SidebarMenuAction>
                             <DropdownMenuContent side="right" align="start">
                               <DropdownMenuItem
-                                onSelect={() => setRenameColumnId(cid)}
+                                onClick={() => setRenameColumnId(cid)}
                               >
                                 <Pencil className="mr-2 size-4" /> Rename
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
-                                onSelect={() => setDeleteColumnId(cid)}
+                                onClick={() => setDeleteColumnId(cid)}
                               >
                                 <Trash2 className="mr-2 size-4" /> Delete
                               </DropdownMenuItem>
@@ -169,18 +180,18 @@ export function NavDecks() {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label={`${deck.name} options`}
-                  className="absolute right-1.5 top-1 inline-flex size-5 items-center justify-center rounded text-sidebar-foreground/50 opacity-0 transition-opacity hover:bg-sidebar-accent/70 hover:text-sidebar-foreground group-hover/collapsible:opacity-100 data-[popup-open]:opacity-100"
+                  className="absolute right-1.5 top-2.5 inline-flex size-5 items-center justify-center rounded text-sidebar-foreground/50 opacity-0 transition-opacity hover:bg-sidebar-accent/70 hover:text-sidebar-foreground group-hover/collapsible:opacity-100 data-[popup-open]:opacity-100"
                 >
                   <MoreHorizontal className="size-3.5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start">
-                  <DropdownMenuItem onSelect={() => setRenameDeckId(deckId)}>
+                  <DropdownMenuItem onClick={() => setRenameDeckId(deckId)}>
                     <Pencil className="mr-2 size-4" /> Rename deck
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant="destructive"
-                    onSelect={() => setDeleteDeckId(deckId)}
+                    onClick={() => setDeleteDeckId(deckId)}
                   >
                     <Trash2 className="mr-2 size-4" /> Delete deck
                   </DropdownMenuItem>

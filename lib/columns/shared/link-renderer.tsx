@@ -1,8 +1,8 @@
 "use client";
 
-import { formatDistanceToNowStrict } from "date-fns";
 import { ExternalLink } from "lucide-react";
 import type { FeedItem } from "@/lib/columns/types";
+import { RelativeTime } from "@/components/relative-time";
 
 export function LinkItem({
   item,
@@ -41,9 +41,7 @@ export function LinkItem({
         )}
         <span className="text-muted-foreground/50">·</span>
         <span className="tabular-nums">
-          {formatDistanceToNowStrict(new Date(item.createdAt), {
-            addSuffix: true,
-          })}
+          <RelativeTime date={item.createdAt} addSuffix />
         </span>
       </div>
       <h3

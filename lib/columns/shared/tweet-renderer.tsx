@@ -1,8 +1,8 @@
 "use client";
 
-import { formatDistanceToNowStrict } from "date-fns";
 import { Heart, MessageCircle, Repeat2 } from "lucide-react";
 import type { FeedItem } from "@/lib/columns/types";
+import { RelativeTime } from "@/components/relative-time";
 
 export function compact(n: number): string {
   if (Math.abs(n) < 1000) return String(n);
@@ -10,18 +10,6 @@ export function compact(n: number): string {
     return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}K`;
   }
   return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
-
-export function timeShort(date: Date): string {
-  return formatDistanceToNowStrict(date, { addSuffix: false })
-    .replace(" seconds", "s")
-    .replace(" second", "s")
-    .replace(" minutes", "m")
-    .replace(" minute", "m")
-    .replace(" hours", "h")
-    .replace(" hour", "h")
-    .replace(" days", "d")
-    .replace(" day", "d");
 }
 
 export function TweetItem({ item }: { item: FeedItem }) {
@@ -62,7 +50,7 @@ export function TweetItem({ item }: { item: FeedItem }) {
             )}
             <span className="text-muted-foreground/50">·</span>
             <span className="shrink-0 text-muted-foreground tabular-nums">
-              {timeShort(new Date(item.createdAt))}
+              <RelativeTime date={item.createdAt} compact />
             </span>
           </div>
           <p
@@ -72,15 +60,15 @@ export function TweetItem({ item }: { item: FeedItem }) {
             {item.content}
           </p>
           <div className="mt-2.5 flex items-center gap-5 text-[11.5px] text-muted-foreground">
-            <span className="flex items-center gap-1 transition-colors group-hover/item:text-foreground">
+            <span className="flex items-center gap-1">
               <MessageCircle className="size-3.5" />
               <span className="tabular-nums">{compact(replies)}</span>
             </span>
-            <span className="flex items-center gap-1 transition-colors group-hover/item:text-[color:var(--chart-2)]">
+            <span className="flex items-center gap-1">
               <Repeat2 className="size-3.5" />
               <span className="tabular-nums">{compact(retweets)}</span>
             </span>
-            <span className="flex items-center gap-1 transition-colors group-hover/item:text-[color:var(--brand)]">
+            <span className="flex items-center gap-1">
               <Heart className="size-3.5" />
               <span className="tabular-nums">{compact(likes)}</span>
             </span>

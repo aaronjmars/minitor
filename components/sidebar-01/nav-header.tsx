@@ -143,13 +143,13 @@ export function NavHeader({ onAddDeck, onAddColumn }: Props) {
                         }}
                       >
                         <span
-                          className="mr-2 inline-flex size-4 items-center justify-center rounded-sm"
+                          className="mr-2 inline-flex size-4 shrink-0 items-center justify-center rounded-sm"
                           style={{ backgroundColor: `${accent}33`, color: accent }}
                         >
                           {Icon ? <Icon className="size-2.5" strokeWidth={2.5} /> : null}
                         </span>
-                        <span className="truncate">{col.title}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">
+                        <span className="min-w-0 flex-1 truncate">{col.title}</span>
+                        <span className="ml-auto shrink-0 whitespace-nowrap pl-3 text-xs text-muted-foreground">
                           in {deck.name}
                         </span>
                       </CommandItem>
