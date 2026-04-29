@@ -12,8 +12,9 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
 import { toast } from "sonner";
+
+import { RelativeTime } from "@/components/relative-time";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,8 +38,16 @@ export function ColumnCard({ column }: { column: Column }) {
   const removeColumn = useDeckStore((s) => s.removeColumn);
   const applyFetchedItems = useDeckStore((s) => s.applyFetchedItems);
   const renameColumn = useDeckStore((s) => s.renameColumn);
+  const isAutoFetching = useDeckStore((s) => s.autoFetchingIds.has(column.id));
 
   const [isFetching, setIsFetching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // undefined = unknown (initial state, never fetched OR no pagination support)
+  // string = ready to load that page
+  // null = exhausted
+  const [nextCursor, setNextCursor] = useState<string | null | undefined>(
+    undefined,
+  );
   const [configureOpen, setConfigureOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -73,8 +82,18 @@ export function ColumnCard({ column }: { column: Column }) {
     setIsFetching(true);
     const started = Date.now();
     try {
-      const items = await type.fetch(column.config as never);
+      let items;
+      let cursor: string | undefined;
+      if (type.fetchPage) {
+        const r = await type.fetchPage(column.config as never);
+        items = r.items;
+        cursor = r.nextCursor;
+      } else {
+        items = await type.fetch(column.config as never);
+      }
       const count = await applyFetchedItems(column.id, items);
+      // Reset pagination cursor on a fresh refresh.
+      setNextCursor(type.fetchPage ? (cursor ?? null) : undefined);
       toast.success(count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items", {
         description: column.title,
       });
@@ -93,13 +112,31 @@ export function ColumnCard({ column }: { column: Column }) {
     }
   }
 
+  async function onLoadMore() {
+    if (!type?.fetchPage) return;
+    if (typeof nextCursor !== "string") return;
+    setIsLoadingMore(true);
+    try {
+      const r = await type.fetchPage(column.config as never, nextCursor);
+      await applyFetchedItems(column.id, r.items);
+      setNextCursor(r.nextCursor ?? null);
+    } catch (err) {
+      toast.error("Couldn't load more", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    zIndex: isDragging ? 50 : undefined,
   };
 
   const isGrokAsk = column.typeId === "grok-ask";
-  const beamActive = isGrokAsk || isFetching;
+  const beamActive = isGrokAsk || isFetching || isAutoFetching;
 
   return (
     <>
@@ -115,8 +152,9 @@ export function ColumnCard({ column }: { column: Column }) {
         data-beam-active={beamActive ? "true" : "false"}
         data-beam-variant={isGrokAsk ? "grok" : "fetch"}
         className={cn(
-          "beam-frame h-full w-[360px] shrink-0 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-shadow hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
-          isDragging && "opacity-60",
+          "beam-frame relative h-full w-[360px] shrink-0 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-shadow hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
+          isDragging &&
+            "cursor-grabbing shadow-[0_24px_60px_-20px_rgba(0,0,0,0.32)] ring-1 ring-foreground/10",
         )}
       >
         <div
@@ -158,9 +196,7 @@ export function ColumnCard({ column }: { column: Column }) {
                 <>
                   <span className="text-muted-foreground/50">·</span>
                   <span className="truncate">
-                    {formatDistanceToNowStrict(new Date(column.lastFetchedAt), {
-                      addSuffix: true,
-                    })}
+                    <RelativeTime date={column.lastFetchedAt} addSuffix />
                   </span>
                 </>
               )}
@@ -190,16 +226,16 @@ export function ColumnCard({ column }: { column: Column }) {
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onSelect={() => setConfigureOpen(true)}>
+              <DropdownMenuItem onClick={() => setConfigureOpen(true)}>
                 <Settings2 className="mr-2 size-4" /> Configure
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+              <DropdownMenuItem onClick={() => setRenameOpen(true)}>
                 <Pencil className="mr-2 size-4" /> Rename
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onSelect={() => setDeleteOpen(true)}
+                onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="mr-2 size-4" /> Delete
               </DropdownMenuItem>
@@ -209,12 +245,38 @@ export function ColumnCard({ column }: { column: Column }) {
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {column.items.length === 0 ? (
-            <EmptyState isFetching={isFetching} onRefresh={onRefresh} />
+            isFetching || isAutoFetching ? (
+              <LoadingSkeleton />
+            ) : (
+              <EmptyState isFetching={isFetching} onRefresh={onRefresh} />
+            )
           ) : (
             <div>
               {column.items.map((item) => (
                 <ItemRenderer key={item.id} item={item} />
               ))}
+              {type.fetchPage && typeof nextCursor === "string" && (
+                <button
+                  type="button"
+                  onClick={onLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex w-full items-center justify-center gap-2 px-3.5 py-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-surface/60 hover:text-foreground disabled:opacity-60"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Loading…
+                    </>
+                  ) : (
+                    "Load more"
+                  )}
+                </button>
+              )}
+              {type.fetchPage && nextCursor === null && (
+                <div className="px-3.5 py-3 text-center text-[11.5px] text-muted-foreground/70">
+                  End of results
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -266,6 +328,48 @@ function EmptyState({
         )}
         Refresh
       </Button>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div role="status" aria-label="Loading items" className="divide-y divide-border">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <SkeletonRow key={i} delay={i * 120} />
+      ))}
+    </div>
+  );
+}
+
+function SkeletonRow({ delay }: { delay: number }) {
+  const style = { animationDelay: `${delay}ms` };
+  return (
+    <div className="flex items-start gap-2.5 px-3.5 py-3">
+      <div
+        className="size-9 shrink-0 animate-pulse rounded-full bg-foreground/[0.06]"
+        style={style}
+      />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex items-center gap-2">
+          <div
+            className="h-3 w-24 animate-pulse rounded bg-foreground/[0.06]"
+            style={style}
+          />
+          <div
+            className="h-3 w-12 animate-pulse rounded bg-foreground/[0.04]"
+            style={style}
+          />
+        </div>
+        <div
+          className="h-3.5 w-full animate-pulse rounded bg-foreground/[0.06]"
+          style={style}
+        />
+        <div
+          className="h-3.5 w-4/5 animate-pulse rounded bg-foreground/[0.06]"
+          style={style}
+        />
+      </div>
     </div>
   );
 }

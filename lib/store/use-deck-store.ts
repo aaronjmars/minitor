@@ -2,7 +2,8 @@
 
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { Column, Deck, FeedItem } from "@/lib/columns/types";
+import { toast } from "sonner";
+import type { Column, ColumnType, Deck, FeedItem } from "@/lib/columns/types";
 import {
   createColumn as serverCreateColumn,
   createDeck as serverCreateDeck,
@@ -25,6 +26,7 @@ interface DeckState {
   deckOrder: string[];
   activeDeckId: string | null;
   columns: Record<string, Column>;
+  autoFetchingIds: Set<string>;
 
   hydrate: (snapshot: Snapshot) => void;
 
@@ -46,6 +48,7 @@ interface DeckState {
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
 
   applyFetchedItems: (columnId: string, items: FeedItem[]) => Promise<number>;
+  autoFetchColumn: (columnId: string, type: ColumnType) => Promise<void>;
 }
 
 function fireAndLog<T>(label: string, p: Promise<T>) {
@@ -54,12 +57,18 @@ function fireAndLog<T>(label: string, p: Promise<T>) {
   });
 }
 
+// Tracks the in-flight server-side create for each new column id so that
+// auto-fetch (which inserts feed_items referencing column.id via FK) can
+// wait for the column row to actually exist on the server before firing.
+const pendingCreates = new Map<string, Promise<unknown>>();
+
 export const useDeckStore = create<DeckState>()((set, get) => ({
   hydrated: false,
   decks: {},
   deckOrder: [],
   activeDeckId: null,
   columns: {},
+  autoFetchingIds: new Set<string>(),
 
   hydrate: (snapshot) =>
     set((s) => ({
@@ -132,7 +141,9 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         },
       };
     });
-    fireAndLog("createColumn", serverCreateColumn(id, deckId, typeId, title, config));
+    const createPromise = serverCreateColumn(id, deckId, typeId, title, config);
+    pendingCreates.set(id, createPromise);
+    fireAndLog("createColumn", createPromise);
     return id;
   },
 
@@ -180,6 +191,46 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       return { decks: { ...s.decks, [deckId]: { ...deck, columnIds: order } } };
     });
     fireAndLog("reorderColumnsInDeck", serverReorderColumns(deckId, order));
+  },
+
+  autoFetchColumn: async (columnId, type) => {
+    const col = get().columns[columnId];
+    if (!col) return;
+    set((s) => {
+      const next = new Set(s.autoFetchingIds);
+      next.add(columnId);
+      return { autoFetchingIds: next };
+    });
+    const started = Date.now();
+    try {
+      // Wait for the server-side INSERT into columns to land before persisting
+      // feed_items, otherwise the FK insert in persistFetchedItems races and
+      // throws "violates foreign key constraint".
+      const create = pendingCreates.get(columnId);
+      if (create) {
+        await create.catch(() => undefined);
+        pendingCreates.delete(columnId);
+      }
+      const items = await type.fetch(col.config as never);
+      const count = await get().applyFetchedItems(columnId, items);
+      toast.success(
+        count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items",
+        { description: col.title },
+      );
+    } catch (err) {
+      toast.error("Fetch failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      // Match the manual-refresh minimum so the beam animation registers.
+      const remaining = Math.max(0, 1800 - (Date.now() - started));
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+      set((s) => {
+        const next = new Set(s.autoFetchingIds);
+        next.delete(columnId);
+        return { autoFetchingIds: next };
+      });
+    }
   },
 
   applyFetchedItems: async (columnId, items) => {

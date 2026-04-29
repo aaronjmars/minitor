@@ -64,6 +64,7 @@ const SUGGESTIONS: Suggestion[] = [
 export function Onboarding() {
   const addDeck = useDeckStore((s) => s.addDeck);
   const addColumn = useDeckStore((s) => s.addColumn);
+  const autoFetchColumn = useDeckStore((s) => s.autoFetchColumn);
   const setActiveDeck = useDeckStore((s) => s.setActiveDeck);
 
   const [deckName, setDeckName] = useState("Home");
@@ -96,7 +97,8 @@ export function Onboarding() {
       if (!s) continue;
       const type = getColumnType(s.typeId);
       if (!type) continue;
-      addColumn(id, s.typeId, s.title, s.config);
+      const colId = addColumn(id, s.typeId, s.title, s.config);
+      void autoFetchColumn(colId, type);
     }
   }
 

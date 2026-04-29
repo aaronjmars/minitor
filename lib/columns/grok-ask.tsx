@@ -1,10 +1,10 @@
 "use client";
 
 import { ExternalLink, Sparkles } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
 import type { ColumnType, FeedItem } from "@/lib/columns/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RelativeTime } from "@/components/relative-time";
 
 type Config = { prompt: string };
 const DEFAULT: Config = { prompt: "" };
@@ -57,7 +57,7 @@ function ItemRenderer({ item }: { item: FeedItem }) {
         </span>
         <span className="text-muted-foreground/50">·</span>
         <span className="tabular-nums">
-          {formatDistanceToNowStrict(new Date(item.createdAt), { addSuffix: true })}
+          <RelativeTime date={item.createdAt} addSuffix />
         </span>
       </div>
 

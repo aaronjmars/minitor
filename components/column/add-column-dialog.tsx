@@ -16,6 +16,11 @@ import { Label } from "@/components/ui/label";
 import { listColumnTypes } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
 import type { ColumnType } from "@/lib/columns/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   open: boolean;
@@ -25,6 +30,7 @@ interface Props {
 
 export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   const addColumn = useDeckStore((s) => s.addColumn);
+  const autoFetchColumn = useDeckStore((s) => s.autoFetchColumn);
   const types = useMemo(() => listColumnTypes(), []);
 
   const [selectedType, setSelectedType] = useState<ColumnType | null>(null);
@@ -51,8 +57,9 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   function commit() {
     if (!selectedType) return;
     const finalTitle = title.trim() || selectedType.defaultTitle(config as never);
-    addColumn(deckId, selectedType.id, finalTitle, config);
+    const newId = addColumn(deckId, selectedType.id, finalTitle, config);
     handleOpenChange(false);
+    void autoFetchColumn(newId, selectedType);
   }
 
   return (
@@ -70,29 +77,30 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
               const Icon = t.icon;
               return (
                 <li key={t.id} className="col-span-1">
-                  <button
-                    type="button"
-                    onClick={() => pickType(t)}
-                    className="group flex w-full overflow-hidden rounded-md border border-border bg-card shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-all hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:shadow-sm"
-                  >
-                    <div
-                      className="flex w-12 shrink-0 items-center justify-center"
-                      style={{ backgroundColor: `${t.accent}33`, color: t.accent }}
+                  <Tooltip>
+                    <TooltipTrigger
+                      onClick={() => pickType(t)}
+                      className="group flex w-full overflow-hidden rounded-md border border-border bg-card shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-all hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:shadow-sm"
                     >
-                      <Icon className="size-5" strokeWidth={2.25} />
-                    </div>
-                    <div className="min-w-0 flex-1 truncate px-3 py-2 text-left">
                       <div
-                        className="truncate text-[13px] font-medium text-foreground group-hover:text-[color:var(--brand-hover)]"
-                        style={{ letterSpacing: "-0.005em" }}
+                        className="flex w-12 shrink-0 items-center justify-center self-stretch"
+                        style={{ backgroundColor: `${t.accent}33`, color: t.accent }}
                       >
-                        {t.label}
+                        <Icon className="size-5" strokeWidth={2.25} />
                       </div>
-                      <div className="mt-0.5 line-clamp-1 text-[11.5px] text-muted-foreground">
-                        {t.description}
+                      <div className="min-w-0 flex-1 truncate px-3 py-3 text-left">
+                        <div
+                          className="truncate text-[13px] font-medium text-foreground group-hover:text-[color:var(--brand-hover)]"
+                          style={{ letterSpacing: "-0.005em" }}
+                        >
+                          {t.label}
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[260px]">
+                      {t.description}
+                    </TooltipContent>
+                  </Tooltip>
                 </li>
               );
             })}
@@ -119,19 +127,16 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          {selectedType && (
+        {selectedType && (
+          <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="ghost" onClick={() => setSelectedType(null)}>
               <ArrowLeft className="mr-1 size-4" />
               Back
             </Button>
-          )}
-          <div className="flex-1" />
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          {selectedType && <Button onClick={commit}>Add column</Button>}
-        </DialogFooter>
+            <div className="flex-1" />
+            <Button onClick={commit}>Add column</Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

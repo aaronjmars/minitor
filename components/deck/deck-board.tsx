@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -35,6 +35,23 @@ export function DeckBoard({ deckId }: { deckId: string }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      // Trackpad horizontal swipes (or shift+wheel) over a column get axis-locked
+      // to the column's vertical scroll. Translate horizontal-dominant wheel
+      // events into deck-board scroll regardless of cursor target.
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        el.scrollLeft += e.deltaX;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   if (!deck) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
@@ -54,7 +71,7 @@ export function DeckBoard({ deckId }: { deckId: string }) {
   }
 
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-hidden">
+    <div ref={scrollerRef} className="flex-1 overflow-x-auto overflow-y-hidden">
       <div className="flex h-full gap-3 p-3">
         <DndContext
           sensors={sensors}
