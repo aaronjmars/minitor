@@ -52,6 +52,27 @@ interface GHSearchResponse<T> {
   total_count?: number;
 }
 
+interface GHPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  html_url: string;
+  state: "open" | "closed";
+  draft: boolean;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  closed_at: string | null;
+  comments?: number;
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
+  base: { ref: string };
+  head: { ref: string };
+  user?: { login: string; avatar_url?: string } | null;
+}
+
 function headers(): HeadersInit {
   const h: Record<string, string> = {
     accept: "application/vnd.github+json",
@@ -221,6 +242,82 @@ async function fetchIssues(
         comments: i.comments,
       },
     } satisfies FeedItem;
+  });
+}
+
+export interface GHPRItemMeta {
+  number: number;
+  state: "open" | "closed" | "merged";
+  isDraft: boolean;
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+  baseBranch: string;
+  headBranch: string;
+  commentsCount: number;
+  repo: string;
+  mergedAt?: string;
+}
+
+export async function fetchPullRequests(
+  repo: string,
+  state: "open" | "closed" | "all",
+  sort: "created" | "updated",
+  limit: number,
+  page = 1,
+): Promise<FeedItem<GHPRItemMeta>[]> {
+  const clean = repo.trim().replace(/^https?:\/\/github\.com\//, "");
+  if (!/^[\w.-]+\/[\w.-]+$/.test(clean)) {
+    throw new Error(`Invalid repo "${repo}". Use owner/repo (e.g. vercel/next.js).`);
+  }
+  const params = new URLSearchParams({
+    state,
+    sort,
+    direction: "desc",
+    per_page: String(limit),
+    page: String(page),
+  });
+  const prs = await ghFetch<GHPullRequest[]>(
+    `${API}/repos/${clean}/pulls?${params}`,
+  );
+  return prs.slice(0, limit).map((p) => {
+    const user = p.user?.login ?? "anonymous";
+    const merged = p.state === "closed" && !!p.merged_at;
+    const display: GHPRItemMeta["state"] = merged
+      ? "merged"
+      : p.state === "closed"
+        ? "closed"
+        : "open";
+    const body = (p.body ?? "").trim();
+    const trimmed =
+      body.length > 400 ? `${body.slice(0, 400).trimEnd()}…` : body;
+    const sortField = sort === "created" ? p.created_at : p.updated_at;
+    return {
+      id: `pr-${p.id}`,
+      author: {
+        name: user,
+        handle: user,
+        avatarUrl:
+          p.user?.avatar_url ??
+          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(user)}`,
+      },
+      content: trimmed ? `${p.title}\n\n${trimmed}` : p.title,
+      url: p.html_url,
+      createdAt: sortField,
+      meta: {
+        number: p.number,
+        state: display,
+        isDraft: p.draft,
+        additions: p.additions,
+        deletions: p.deletions,
+        changedFiles: p.changed_files,
+        baseBranch: p.base.ref,
+        headBranch: p.head.ref,
+        commentsCount: p.comments ?? 0,
+        repo: clean,
+        mergedAt: p.merged_at ?? undefined,
+      },
+    } satisfies FeedItem<GHPRItemMeta>;
   });
 }
 
