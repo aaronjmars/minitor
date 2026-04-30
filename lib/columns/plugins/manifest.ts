@@ -14,6 +14,7 @@ import { meta as newsSearch } from "./news-search/plugin";
 import { meta as reddit } from "./reddit/plugin";
 import { meta as hackerNews } from "./hacker-news/plugin";
 import { meta as github } from "./github/plugin";
+import { meta as githubBacklinks } from "./github-backlinks/plugin";
 import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
 import { meta as mentions } from "./mentions/plugin";
@@ -32,6 +33,7 @@ export const PLUGIN_METAS = [
   reddit,
   hackerNews,
   github,
+  githubBacklinks,
   rss,
   googleNews,
   mentions,
