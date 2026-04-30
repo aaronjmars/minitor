@@ -13,13 +13,13 @@
 
 ---
 
-> **An X Pro–style monitoring dashboard for the open web — decks, columns, plugins.**
-> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Reddit, Hacker News, GitHub (trending / releases / issues / PRs / stars / forks / backlinks / search), Farcaster, YouTube, RSS, Google News, Bing, Substack, LinkedIn / Facebook / Instagram mentions, Apple + Google Play reviews, on-chain wallet activity, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
+> **Monitor the current thing. Your dashboard for the internet.**
+> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Reddit, Hacker News, GitHub (trending / issues / PRs / stars / forks / backlinks / search), Farcaster, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
 
 ### What it does
 
 - You name a deck. Minitor packs it with whatever you're watching.
-- 31 column types out of the box — social feeds, news, GitHub, app reviews, on-chain transactions, Chinese hot boards.
+- 30 column types out of the box — social feeds, news, GitHub, app reviews, on-chain transactions, Chinese hot boards.
 - Refresh per column or auto-fetch on creation. Load more pages 10 at a time.
 - ⌘K command palette over every deck, column, and action. Drag to reorder.
 - Local-first by default — embedded PGlite, no Postgres install needed.
@@ -52,60 +52,30 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 
 ### Column types
 
-| Plugin | Source | Keys |
-|---|---|---|
-| **X · Search** | xAI `x_search` (operators: `from:`, `to:`, `@`, `#`, `min_faves:`, `lang:`, `since:`) | `XAI_API_KEY` |
-| **X · Trending** | xAI `x_search` — top engagement, last 24h | `XAI_API_KEY` |
-| **Reddit** | Public JSON, per-subreddit | — |
-| **Hacker News** | Algolia HN — top / new / Ask / Show / search | — |
-| **GitHub trending** | GitHub Search API — by language + window | — |
-| **GitHub releases** | Repo releases endpoint | — |
-| **GitHub issues / PRs** | Issue search syntax (`is:open`, `repo:`, `label:`, `author:`…) | — |
-| **GitHub PRs** | Latest PRs on a specific repo | — |
-| **GitHub stars** | New stargazers, newest first | — |
-| **GitHub forks** | New forks, newest first | — |
-| **GitHub search** | Free-form mention monitoring (repos / issues / code / commits) | — |
-| **GitHub backlinks** | Multi-source fan-out for repo mentions (HN + Reddit + Google News + Bing News + GitHub issues) | — |
-| **RSS** | Any RSS / Atom feed | — |
-| **Google News** | Search-driven news, all languages by default | — |
-| **News · Topic** | xAI `web_search` — major publications | `XAI_API_KEY` |
-| **Web search** | Bing News RSS, keyless | — |
-| **Farcaster** | Neynar (search + user via `@handle` / `from:handle`) — falls back to `NEYNAR_API_DOCS` demo key | optional `NEYNAR_API_KEY` |
-| **YouTube** | Atom feeds (channel / playlist) + Data API v3 (search) | optional `YOUTUBE_API_KEY` (search only) |
-| **Substack** | Per-publication RSS, or keyword-only via xAI `web_search` (`site:substack.com`) | optional `XAI_API_KEY` for keyword mode |
-| **LinkedIn mentions** | xAI `web_search` (`site:linkedin.com/posts`) | `XAI_API_KEY` |
-| **Facebook mentions** | xAI `web_search` (`site:facebook.com`) | `XAI_API_KEY` |
-| **Instagram** | xAI `web_search` (`site:instagram.com`) | `XAI_API_KEY` |
-| **Apple reviews** | iTunes RSS, per-app, per-country | — |
-| **Google Play reviews** | Public Play store endpoint | — |
-| **Wallet · Transactions** | Blockscout REST v2 across 9 EVM chains (Ethereum, Base, Optimism, Arbitrum, Polygon, Gnosis, Scroll, Celo, zkSync) | — |
-| **Weibo · Hot search** | NewsNow aggregator | — |
-| **Zhihu · Hot** | NewsNow aggregator | — |
-| **Douyin · Hot** | NewsNow aggregator | — |
-| **Bilibili · Hot search** | NewsNow aggregator | — |
-| **Toutiao** | NewsNow aggregator | — |
-| **Baidu · Hot search** | NewsNow aggregator | — |
+| Category | Columns |
+|----------|---------|
+| **Social — X / Reddit / HN / Farcaster** (5) | `x-search`, `x-trending`, `reddit`, `hacker-news`, `farcaster` |
+| **GitHub** (8) | `github-trending`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks` |
+| **News & web** (4) | `bing` (Web search), `google-news`, `news-search`, `rss` |
+| **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
+| **Mention monitors** (2) | `facebook`, `instagram` |
+| **Apps & on-chain** (3) | `apple-reviews`, `play-reviews`, `wallet-tx` |
+| **China hot boards** (6) | `weibo-hot`, `zhihu-hot`, `douyin-hot`, `bilibili-hot`, `toutiao`, `baidu-hot` |
 
-Add a new source by copying `lib/columns/plugins/_template/` — see [`lib/columns/README.md`](lib/columns/README.md) for the full plugin contract.
+Full plugin manifest: [`lib/columns/plugins/manifest.ts`](lib/columns/plugins/manifest.ts). Add a new source by copying [`lib/columns/plugins/_template/`](lib/columns/plugins/_template/) — see [`lib/columns/README.md`](lib/columns/README.md) for the full contract.
+
+**Keys:** `XAI_API_KEY` for `x-*`, `news-search`, `linkedin`, `facebook`, `instagram` (and Substack's keyword-only mode). Optional `NEYNAR_API_KEY` for Farcaster (demo-key fallback works), optional `YOUTUBE_API_KEY` for YouTube *search* (channel / playlist Atom feeds are keyless). Everything else runs without keys.
 
 ### Features
 
-| Feature | What it does |
-|---|---|
-| **`./minitor` launcher** | One command bootstraps deps, env, DB, and dev server. Idempotent — re-running just starts the server |
-| **PGlite default** | Embedded real Postgres compiled to WASM — zero install. Swap to node-postgres or Neon by setting `DATABASE_URL` |
-| **Plugin architecture** | Every column type is a 3-file plugin (`plugin.ts`, `client.tsx`, `server.ts`). Init-time parity check across the 3 registries catches drift loudly |
-| **Zod-validated configs** | Every plugin's config shape is a Zod schema — single source of truth, structured 400s on bad client input |
-| **Cursor-based pagination** | Every plugin returns `{ items, nextCursor? }`. The card shows **Load more** when a cursor is present, **End of results** when null |
-| **10 items per page** | Standardized across all plugins. Refresh fetches first 10, Load more pages through the rest in 10s |
-| **⌘K command palette** | Jump to any deck, column, or action. Driven by `cmdk` |
-| **Drag to reorder** | Decks and columns are sortable via `@dnd-kit` with optimistic UI |
-| **Auto-refresh beam** | CSS-only conic-gradient border on every refreshing column. No JS animation loop |
-| **Live-ticking timestamps** | Single 1Hz `setInterval` for the whole app drives every `<RelativeTime>` via `useSyncExternalStore` |
-| **Onboarding flow** | First run drops you into a guided deck-creation screen with curated starter columns |
-| **"Hide sources you can't use"** | Add-column dialog dims plugins whose required env keys are missing — server only ever reports presence, never values |
-| **Optimistic mutations** | Zustand store with server-action writes. No localStorage — every device sees the same state |
-| **Multi-driver Postgres** | Same Drizzle schema works against PGlite, node-postgres, or Neon's serverless HTTP driver, picked at runtime by `DATABASE_URL` |
+| Category | Highlights |
+|----------|-----------|
+| **Launcher** (6) | `./minitor` (dev), `./minitor build`, `./minitor start`, `./minitor migrate`, `./minitor doctor`, `./minitor reset` — auto-detects npm / pnpm / yarn / bun, idempotent re-runs |
+| **Plugin system** (4) | 3-file folders (`plugin.ts`, `client.tsx`, `server.ts`), Zod-validated configs, init-time parity check across 3 registries, copy-paste `_template/` to add a source |
+| **Pagination** (3) | Cursor-based `{ items, nextCursor? }` everywhere, 10 items per page, Load more + End of results states; slice helper at `lib/columns/paginate.ts` for non-cursor sources |
+| **Database** (4) | PGlite default (zero install), node-postgres for self-hosted, `@neondatabase/serverless` HTTP driver for Neon, runtime selector by `DATABASE_URL` |
+| **UI** (7) | ⌘K command palette, `@dnd-kit` drag-reorder, conic-gradient refresh beam (CSS-only), live-ticking timestamps (1Hz `useSyncExternalStore`), onboarding flow, missing-key dimming on Add column, full-column loading skeleton |
+| **State** (3) | zustand + server-action writes, optimistic mutations, no localStorage (every device sees the same state) |
 
 ### Use cases
 
