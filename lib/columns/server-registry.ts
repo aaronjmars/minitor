@@ -19,6 +19,7 @@ import { server as reddit } from "@/lib/columns/plugins/reddit/server";
 import { server as hackerNews } from "@/lib/columns/plugins/hacker-news/server";
 import { server as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/server";
 import { server as github } from "@/lib/columns/plugins/github/server";
+import { server as githubSearch } from "@/lib/columns/plugins/github-search/server";
 import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
 import { server as mentions } from "@/lib/columns/plugins/mentions/server";
@@ -38,6 +39,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "hacker-news": hackerNews,
   "hacker-news-search": hackerNewsSearch,
   github,
+  "github-search": githubSearch,
   rss,
   "google-news": googleNews,
   mentions,
