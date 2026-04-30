@@ -28,6 +28,7 @@ import { column as googleNews } from "@/lib/columns/plugins/google-news/client";
 import { column as mentions } from "@/lib/columns/plugins/mentions/client";
 import { column as farcaster } from "@/lib/columns/plugins/farcaster/client";
 import { column as youtube } from "@/lib/columns/plugins/youtube/client";
+import { column as tiktok } from "@/lib/columns/plugins/tiktok/client";
 import { column as newsnow } from "@/lib/columns/plugins/newsnow/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
@@ -50,6 +51,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   mentions,
   farcaster,
   youtube,
+  tiktok,
   newsnow,
 };
 

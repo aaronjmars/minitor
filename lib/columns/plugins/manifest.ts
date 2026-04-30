@@ -20,6 +20,7 @@ import { meta as googleNews } from "./google-news/plugin";
 import { meta as mentions } from "./mentions/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as youtube } from "./youtube/plugin";
+import { meta as tiktok } from "./tiktok/plugin";
 import { meta as newsnow } from "./newsnow/plugin";
 
 export const PLUGIN_METAS = [
@@ -39,6 +40,7 @@ export const PLUGIN_METAS = [
   mentions,
   farcaster,
   youtube,
+  tiktok,
   newsnow,
 ];
 
