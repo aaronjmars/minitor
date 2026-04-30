@@ -24,6 +24,21 @@ import { server as mentions } from "@/lib/columns/plugins/mentions/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
 import { server as newsnow } from "@/lib/columns/plugins/newsnow/server";
+import { server as instagram } from "@/lib/columns/plugins/instagram/server";
+import { server as rednote } from "@/lib/columns/plugins/rednote/server";
+import { server as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/server";
+import { server as githubSearch } from "@/lib/columns/plugins/github-search/server";
+import { server as tiktok } from "@/lib/columns/plugins/tiktok/server";
+import { server as weiboSearch } from "@/lib/columns/plugins/weibo-search/server";
+import { server as substack } from "@/lib/columns/plugins/substack/server";
+import { server as linkedin } from "@/lib/columns/plugins/linkedin/server";
+import { server as facebook } from "@/lib/columns/plugins/facebook/server";
+import { server as githubBacklinks } from "@/lib/columns/plugins/github-backlinks/server";
+import { server as walletTx } from "@/lib/columns/plugins/wallet-tx/server";
+import { server as githubPrs } from "@/lib/columns/plugins/github-prs/server";
+import { server as telegramSearch } from "@/lib/columns/plugins/telegram-search/server";
+import { server as appReviews } from "@/lib/columns/plugins/app-reviews/server";
+import { server as githubWatchers } from "@/lib/columns/plugins/github-watchers/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "grok-ask": grokAsk,
@@ -42,6 +57,21 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   farcaster,
   youtube,
   newsnow,
+  instagram,
+  rednote,
+  "hacker-news-search": hackerNewsSearch,
+  "github-search": githubSearch,
+  tiktok,
+  "weibo-search": weiboSearch,
+  substack,
+  linkedin,
+  facebook,
+  "github-backlinks": githubBacklinks,
+  "wallet-tx": walletTx,
+  "github-prs": githubPrs,
+  "telegram-search": telegramSearch,
+  "app-reviews": appReviews,
+  "github-watchers": githubWatchers,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than

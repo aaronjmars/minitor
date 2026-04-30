@@ -20,6 +20,21 @@ import { meta as mentions } from "./mentions/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as youtube } from "./youtube/plugin";
 import { meta as newsnow } from "./newsnow/plugin";
+import { meta as instagram } from "./instagram/plugin";
+import { meta as rednote } from "./rednote/plugin";
+import { meta as hackerNewsSearch } from "./hacker-news-search/plugin";
+import { meta as githubSearch } from "./github-search/plugin";
+import { meta as tiktok } from "./tiktok/plugin";
+import { meta as weiboSearch } from "./weibo-search/plugin";
+import { meta as substack } from "./substack/plugin";
+import { meta as linkedin } from "./linkedin/plugin";
+import { meta as facebook } from "./facebook/plugin";
+import { meta as githubBacklinks } from "./github-backlinks/plugin";
+import { meta as walletTx } from "./wallet-tx/plugin";
+import { meta as githubPrs } from "./github-prs/plugin";
+import { meta as telegramSearch } from "./telegram-search/plugin";
+import { meta as appReviews } from "./app-reviews/plugin";
+import { meta as githubWatchers } from "./github-watchers/plugin";
 
 export const PLUGIN_METAS = [
   grokAsk,
@@ -38,6 +53,21 @@ export const PLUGIN_METAS = [
   farcaster,
   youtube,
   newsnow,
+  instagram,
+  rednote,
+  hackerNewsSearch,
+  githubSearch,
+  tiktok,
+  weiboSearch,
+  substack,
+  linkedin,
+  facebook,
+  githubBacklinks,
+  walletTx,
+  githubPrs,
+  telegramSearch,
+  appReviews,
+  githubWatchers,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
