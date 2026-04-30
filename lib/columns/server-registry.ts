@@ -24,6 +24,7 @@ import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
 import { server as mentions } from "@/lib/columns/plugins/mentions/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
+import { server as linkedin } from "@/lib/columns/plugins/linkedin/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
 import { server as newsnow } from "@/lib/columns/plugins/newsnow/server";
 
@@ -44,6 +45,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "google-news": googleNews,
   mentions,
   farcaster,
+  linkedin,
   youtube,
   newsnow,
 };

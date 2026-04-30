@@ -20,6 +20,7 @@ import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
 import { meta as mentions } from "./mentions/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
+import { meta as linkedin } from "./linkedin/plugin";
 import { meta as youtube } from "./youtube/plugin";
 import { meta as newsnow } from "./newsnow/plugin";
 
@@ -40,6 +41,7 @@ export const PLUGIN_METAS = [
   googleNews,
   mentions,
   farcaster,
+  linkedin,
   youtube,
   newsnow,
 ];
