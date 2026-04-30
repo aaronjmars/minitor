@@ -20,6 +20,7 @@ import { meta as mentions } from "./mentions/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as youtube } from "./youtube/plugin";
 import { meta as newsnow } from "./newsnow/plugin";
+import { meta as rednote } from "./rednote/plugin";
 
 export const PLUGIN_METAS = [
   grokAsk,
@@ -38,6 +39,7 @@ export const PLUGIN_METAS = [
   farcaster,
   youtube,
   newsnow,
+  rednote,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
