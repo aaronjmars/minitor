@@ -13,6 +13,10 @@
 
 ---
 
+<p align="center">
+  <img src="./public/minitor.gif" alt="Minitor demo" width="100%" />
+</p>
+
 > **Monitor the current thing. Your dashboard for the internet.**
 > Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Reddit, Hacker News, GitHub (trending / issues / PRs / stars / forks / backlinks / search), Farcaster, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
 
