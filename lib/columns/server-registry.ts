@@ -24,6 +24,7 @@ import { server as mentions } from "@/lib/columns/plugins/mentions/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
 import { server as newsnow } from "@/lib/columns/plugins/newsnow/server";
+import { server as appReviews } from "@/lib/columns/plugins/app-reviews/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "grok-ask": grokAsk,
@@ -42,6 +43,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   farcaster,
   youtube,
   newsnow,
+  "app-reviews": appReviews,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than
