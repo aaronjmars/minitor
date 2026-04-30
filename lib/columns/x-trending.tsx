@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
-import type { ColumnType, FeedItem } from "@/lib/columns/types";
+import type { ColumnType } from "@/lib/columns/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TweetItem } from "@/lib/columns/shared/tweet-renderer";
@@ -33,20 +33,6 @@ function ConfigForm({
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/x-trending", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 export const xTrendingType: ColumnType<Config> = {
   id: "x-trending",
   label: "X · Trending",
@@ -58,5 +44,4 @@ export const xTrendingType: ColumnType<Config> = {
     c.topic?.trim() ? `Trending · ${c.topic}` : "X · Trending",
   ConfigForm,
   ItemRenderer: TweetItem,
-  fetch: fetchItems,
 };

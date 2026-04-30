@@ -167,20 +167,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchItems(config: FCConfig): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/farcaster", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 export const farcasterType: ColumnType<FCConfig> = {
   id: "farcaster",
   label: "Farcaster",
@@ -198,5 +184,4 @@ export const farcasterType: ColumnType<FCConfig> = {
   },
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
 };

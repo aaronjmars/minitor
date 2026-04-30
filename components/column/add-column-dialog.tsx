@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { listColumnTypes } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
-import type { ColumnType } from "@/lib/columns/types";
+import type { AnyColumnType } from "@/lib/columns/types";
 import {
   Tooltip,
   TooltipContent,
@@ -33,7 +33,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   const autoFetchColumn = useDeckStore((s) => s.autoFetchColumn);
   const types = useMemo(() => listColumnTypes(), []);
 
-  const [selectedType, setSelectedType] = useState<ColumnType | null>(null);
+  const [selectedType, setSelectedType] = useState<AnyColumnType | null>(null);
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [title, setTitle] = useState("");
 
@@ -48,7 +48,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
     onOpenChange(next);
   }
 
-  function pickType(type: ColumnType) {
+  function pickType(type: AnyColumnType) {
     setSelectedType(type);
     setConfig({ ...(type.defaultConfig as Record<string, unknown>) });
     setTitle(type.defaultTitle(type.defaultConfig as never));
@@ -57,9 +57,9 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   function commit() {
     if (!selectedType) return;
     const finalTitle = title.trim() || selectedType.defaultTitle(config as never);
-    const newId = addColumn(deckId, selectedType.id, finalTitle, config);
+    const { id, ready } = addColumn(deckId, selectedType.id, finalTitle, config);
     handleOpenChange(false);
-    void autoFetchColumn(newId, selectedType);
+    void autoFetchColumn(id, selectedType, ready);
   }
 
   return (

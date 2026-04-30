@@ -141,20 +141,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/newsnow", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 export const newsnowType: ColumnType<Config> = {
   id: "newsnow",
   label: "China · Hot",
@@ -165,5 +151,4 @@ export const newsnowType: ColumnType<Config> = {
   defaultTitle: (c) => `Hot · ${PLATFORM_LABELS[c.platform] ?? "China"}`,
   ConfigForm,
   ItemRenderer: ItemRenderer,
-  fetch: fetchItems,
 };

@@ -119,30 +119,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchPage(
-  config: RedditConfig,
-  cursor?: string,
-): Promise<{ items: FeedItem[]; nextCursor?: string }> {
-  const res = await fetch("/api/columns/reddit", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      config,
-      ...(cursor !== undefined ? { op: "loadMore", cursor } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  return (await res.json()) as { items: FeedItem[]; nextCursor?: string };
-}
-
-async function fetchItems(config: RedditConfig): Promise<FeedItem[]> {
-  const { items } = await fetchPage(config);
-  return items;
-}
-
 export const redditType: ColumnType<RedditConfig> = {
   id: "reddit",
   label: "Reddit · Subreddit",
@@ -153,6 +129,5 @@ export const redditType: ColumnType<RedditConfig> = {
   defaultTitle: (c) => (c.subreddit?.trim() ? `r/${c.subreddit}` : "Reddit · Subreddit"),
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
-  fetchPage,
+  paginated: true,
 };

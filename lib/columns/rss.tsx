@@ -43,20 +43,6 @@ function Renderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/rss", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 function defaultTitle(c: Config): string {
   const url = c.url.trim();
   if (!url) return "RSS";
@@ -78,5 +64,4 @@ export const rssType: ColumnType<Config> = {
   defaultTitle,
   ConfigForm,
   ItemRenderer: Renderer,
-  fetch: fetchItems,
 };

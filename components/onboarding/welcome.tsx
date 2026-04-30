@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { listColumnTypes, getColumnType } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
-import type { ColumnType } from "@/lib/columns/types";
+import type { AnyColumnType } from "@/lib/columns/types";
 
 interface Suggestion {
   typeId: string;
@@ -72,7 +72,7 @@ export function Onboarding() {
   const [picked, setPicked] = useState<Set<number>>(() => new Set([0, 1]));
 
   const types = useMemo(() => {
-    const m = new Map<string, ColumnType>();
+    const m = new Map<string, AnyColumnType>();
     for (const t of listColumnTypes()) m.set(t.id, t);
     return m;
   }, []);
@@ -97,8 +97,8 @@ export function Onboarding() {
       if (!s) continue;
       const type = getColumnType(s.typeId);
       if (!type) continue;
-      const colId = addColumn(id, s.typeId, s.title, s.config);
-      void autoFetchColumn(colId, type);
+      const { id: colId, ready } = addColumn(id, s.typeId, s.title, s.config);
+      void autoFetchColumn(colId, type, ready);
     }
   }
 

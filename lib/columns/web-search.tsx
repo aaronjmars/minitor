@@ -32,20 +32,6 @@ function ConfigForm({
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/web-search", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 function Renderer({ item }: { item: FeedItem }) {
   return (
     <LinkItem
@@ -66,5 +52,4 @@ export const webSearchType: ColumnType<Config> = {
   defaultTitle: (c) => (c.query?.trim() ? `Web · ${c.query}` : "Web · Search"),
   ConfigForm,
   ItemRenderer: Renderer,
-  fetch: fetchItems,
 };

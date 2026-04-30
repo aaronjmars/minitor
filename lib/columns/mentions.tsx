@@ -146,20 +146,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/mentions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 export const mentionsType: ColumnType<Config> = {
   id: "mentions",
   label: "Mentions monitor",
@@ -171,5 +157,4 @@ export const mentionsType: ColumnType<Config> = {
     c.query.trim() ? `Mentions · ${c.query.trim()}` : "Mentions monitor",
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
 };

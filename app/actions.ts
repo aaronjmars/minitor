@@ -1,11 +1,10 @@
 "use server";
 
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { columns, decks, feedItems } from "@/lib/db/schema";
 import type { Column, Deck, FeedItem } from "@/lib/columns/types";
-
-const MAX_ITEMS_PER_COLUMN = 200;
+import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
 
 export interface Snapshot {
   decks: Record<string, Deck>;
@@ -13,14 +12,38 @@ export interface Snapshot {
   columns: Record<string, Column>;
 }
 
+type ItemRow = {
+  id: string;
+  column_id: string;
+  author: FeedItem["author"];
+  content: string;
+  url: string | null;
+  created_at: string;
+  meta: Record<string, unknown> | null;
+};
+
 export async function loadSnapshot(): Promise<Snapshot> {
-  const [deckRows, columnRows, itemRows] = await Promise.all([
+  // Page items at the DB instead of slicing in memory: window-function with
+  // row_number() returns at most MAX_ITEMS_PER_COLUMN per column, ordered
+  // newest-first within each partition.
+  const itemQuery = db.execute(sql`
+    SELECT id, column_id, author, content, url, created_at, meta
+    FROM (
+      SELECT *,
+        row_number() OVER (PARTITION BY column_id ORDER BY created_at DESC) AS rn
+      FROM feed_items
+    ) t
+    WHERE rn <= ${MAX_ITEMS_PER_COLUMN}
+    ORDER BY column_id, created_at DESC
+  `);
+
+  const [deckRows, columnRows, itemResult] = await Promise.all([
     db.select().from(decks).orderBy(asc(decks.position), asc(decks.createdAt)),
     db
       .select()
       .from(columns)
       .orderBy(asc(columns.position), asc(columns.createdAt)),
-    db.select().from(feedItems).orderBy(desc(feedItems.createdAt)),
+    itemQuery,
   ]);
 
   const decksById: Record<string, Deck> = {};
@@ -43,17 +66,19 @@ export async function loadSnapshot(): Promise<Snapshot> {
     decksById[c.deckId]?.columnIds.push(c.id);
   }
 
+  const itemRows: ItemRow[] = Array.isArray(itemResult)
+    ? (itemResult as ItemRow[])
+    : ((itemResult as unknown as { rows?: ItemRow[] }).rows ?? []);
   for (const item of itemRows) {
-    const col = columnsById[item.columnId];
+    const col = columnsById[item.column_id];
     if (!col) continue;
-    if (col.items.length >= MAX_ITEMS_PER_COLUMN) continue;
     col.items.push({
       id: item.id,
-      author: item.author as FeedItem["author"],
+      author: item.author,
       content: item.content,
       url: item.url ?? undefined,
-      createdAt: item.createdAt.toISOString(),
-      meta: (item.meta as Record<string, unknown>) ?? undefined,
+      createdAt: new Date(item.created_at).toISOString(),
+      meta: item.meta ?? undefined,
     });
   }
 
@@ -77,11 +102,16 @@ export async function deleteDeck(id: string): Promise<void> {
 
 export async function reorderDecks(orderedIds: string[]): Promise<void> {
   if (orderedIds.length === 0) return;
-  await Promise.all(
-    orderedIds.map((id, position) =>
-      db.update(decks).set({ position }).where(eq(decks.id, id)),
-    ),
+  const values = sql.join(
+    orderedIds.map((id, i) => sql`(${id}::text, ${i}::int)`),
+    sql`, `,
   );
+  await db.execute(sql`
+    UPDATE decks
+    SET position = v.position
+    FROM (VALUES ${values}) AS v(id, position)
+    WHERE decks.id = v.id
+  `);
 }
 
 export async function createColumn(
@@ -125,14 +155,16 @@ export async function reorderColumnsInDeck(
   orderedIds: string[],
 ): Promise<void> {
   if (orderedIds.length === 0) return;
-  await Promise.all(
-    orderedIds.map((id, position) =>
-      db
-        .update(columns)
-        .set({ position, deckId })
-        .where(eq(columns.id, id)),
-    ),
+  const values = sql.join(
+    orderedIds.map((id, i) => sql`(${id}::text, ${i}::int)`),
+    sql`, `,
   );
+  await db.execute(sql`
+    UPDATE columns
+    SET position = v.position, deck_id = ${deckId}
+    FROM (VALUES ${values}) AS v(id, position)
+    WHERE columns.id = v.id
+  `);
 }
 
 export async function persistFetchedItems(

@@ -1,7 +1,7 @@
 "use client";
 
 import { UserRound } from "lucide-react";
-import type { ColumnType, FeedItem } from "@/lib/columns/types";
+import type { ColumnType } from "@/lib/columns/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TweetItem } from "@/lib/columns/shared/tweet-renderer";
@@ -34,20 +34,6 @@ function ConfigForm({
   );
 }
 
-async function fetchItems(config: Config): Promise<FeedItem[]> {
-  const res = await fetch("/api/columns/x-user", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ config }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as { items: FeedItem[] };
-  return json.items;
-}
-
 export const xUserType: ColumnType<Config> = {
   id: "x-user",
   label: "X · User timeline",
@@ -58,5 +44,4 @@ export const xUserType: ColumnType<Config> = {
   defaultTitle: (c) => (c.handle?.trim() ? `@${c.handle.replace(/^@/, "")}` : "X · User"),
   ConfigForm,
   ItemRenderer: TweetItem,
-  fetch: fetchItems,
 };
