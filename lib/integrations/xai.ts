@@ -309,3 +309,17 @@ export async function grokNewsSearch(query: string, limit = 6): Promise<FeedItem
     .filter((i): i is FeedItem => i !== null)
     .slice(0, limit);
 }
+
+export async function grokFacebookSearch(query: string, limit = 6): Promise<FeedItem[]> {
+  const q = query.trim();
+  const scoped = q ? `site:facebook.com ${q}` : "site:facebook.com";
+  const prompt = `Search the web for the ${limit} most recent public Facebook posts or pages matching: ${JSON.stringify(
+    scoped,
+  )}. Restrict results to facebook.com URLs (posts, page wall items, public group posts). Sort newest first. For each, set "source" to the page or profile name (not the domain), and "title" to a short snippet from the post. Return ONLY a JSON array (no prose, no code fences) matching this shape: ${WEB_ITEM_SHAPE}.`;
+  const items = await callGrok({ prompt, tools: [{ type: "web_search" }] });
+  return items
+    .map((g) => toWebFeedItem(g, "web"))
+    .filter((i): i is FeedItem => i !== null)
+    .filter((i) => /(^|\.)facebook\.com\//i.test(i.url ?? ""))
+    .slice(0, limit);
+}
