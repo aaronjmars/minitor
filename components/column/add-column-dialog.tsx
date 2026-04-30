@@ -116,6 +116,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
                 setTitle(selectedType.defaultTitle(next as never));
               }}
             />
+            <CapabilitiesNote type={selectedType} />
             <div className="grid gap-1.5">
               <Label htmlFor="col-title">Column title</Label>
               <Input
@@ -139,5 +140,36 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CapabilitiesNote({ type }: { type: AnyColumnType }) {
+  const caps = type.capabilities;
+  if (!caps) return null;
+  const requiresEnv = caps.requiresEnv ?? [];
+  const rateLimitHint = caps.rateLimitHint;
+  if (requiresEnv.length === 0 && !rateLimitHint) return null;
+  return (
+    <div className="rounded-md border border-border bg-surface/40 px-3 py-2 text-[11.5px] text-muted-foreground">
+      {requiresEnv.length > 0 && (
+        <div>
+          Requires:{" "}
+          {requiresEnv.map((v, i) => (
+            <span key={v}>
+              <code className="rounded bg-foreground/[0.06] px-1 py-px text-foreground/90">
+                {v}
+              </code>
+              {i < requiresEnv.length - 1 ? ", " : ""}
+            </span>
+          ))}
+          <span className="text-muted-foreground/70"> in your env.</span>
+        </div>
+      )}
+      {rateLimitHint && (
+        <div className={requiresEnv.length > 0 ? "mt-1" : undefined}>
+          Rate limit: {rateLimitHint}
+        </div>
+      )}
+    </div>
   );
 }

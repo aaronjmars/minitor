@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { z } from "zod";
 
 export interface FeedAuthor {
   name: string;
@@ -7,13 +8,13 @@ export interface FeedAuthor {
   avatarUrl?: string;
 }
 
-export interface FeedItem {
+export interface FeedItem<TMeta = unknown> {
   id: string;
   author: FeedAuthor;
   content: string;
   url?: string;
   createdAt: string;
-  meta?: Record<string, unknown>;
+  meta?: TMeta;
 }
 
 export interface ConfigFormProps<TConfig> {
@@ -21,48 +22,127 @@ export interface ConfigFormProps<TConfig> {
   onChange: (next: TConfig) => void;
 }
 
-export interface ItemRendererProps {
-  item: FeedItem;
+export interface ItemRendererProps<TMeta = unknown> {
+  item: FeedItem<TMeta>;
 }
 
-export interface PageResult {
-  items: FeedItem[];
+export interface PageResult<TMeta = unknown> {
+  items: FeedItem<TMeta>[];
   /** Opaque cursor for the next page, or undefined when exhausted. */
   nextCursor?: string;
 }
 
-export interface ColumnType<TConfig extends Record<string, unknown> = Record<string, unknown>> {
+export type ColumnCategory =
+  | "ai"
+  | "social"
+  | "news"
+  | "video"
+  | "blockchain"
+  | "other";
+
+/**
+ * Declarative capabilities a plugin opts into. The UI reads these to render
+ * conditionally — e.g. show "Load more" only when `paginated`, warn about
+ * missing API keys via `requiresEnv`.
+ */
+export interface ColumnCapabilities {
+  /** Server may return a `nextCursor`; UI shows Load more. */
+  paginated?: boolean;
+  /** Hint for auto-refresh; UI may use this to schedule background fetches. */
+  refreshIntervalHintMs?: number;
+  /** Env vars the server fetcher requires. UI surfaces a warning when missing. */
+  requiresEnv?: string[];
+  /** Free-form rate-limit description shown in the config form. */
+  rateLimitHint?: string;
+}
+
+/**
+ * Pure plugin metadata — describes a column type without depending on any
+ * React JSX (so it can be imported from server code) or server-only modules
+ * (so it can be imported from client code). The full UI is assembled by
+ * combining this with `ConfigForm` + `ItemRenderer` in the plugin's `client.tsx`.
+ */
+export interface PluginMeta<
+  TConfig extends Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  TMeta = unknown,
+> {
   id: string;
   label: string;
   description: string;
   icon: LucideIcon;
   accent: string;
+  category: ColumnCategory;
+  /** Single source of truth for the config shape. Server validates with this. */
+  schema: z.ZodType<TConfig>;
+  /** Default config used when creating a column. Usually `schema.parse({})`. */
   defaultConfig: TConfig;
   defaultTitle: (config: TConfig) => string;
-  ConfigForm: ComponentType<ConfigFormProps<TConfig>>;
-  ItemRenderer: ComponentType<ItemRendererProps>;
-  /**
-   * If true, the API may return a `nextCursor` and the column card renders
-   * Load more. The same value reaching `null` from the server means
-   * "exhausted". One-shot integrations (Grok, RSS, etc.) leave this false.
-   */
-  paginated?: boolean;
+  capabilities?: ColumnCapabilities;
 }
-
-/** Config-erased view of a registered column type — what the registry stores. */
-export type AnyColumnType = ColumnType<Record<string, unknown>>;
 
 /**
- * Registers a typed `ColumnType<T>` as an `AnyColumnType` without sprinkling
- * `as unknown as` casts at every call site. The cast is unsafe in principle
- * (TConfig is invariant) but safe in practice because every consumer treats
- * the config as opaque JSON.
+ * Full client-side description: metadata + UI components. Registered in
+ * `lib/columns/registry.ts` and consumed by the dashboard.
  */
-export function defineColumnType<TConfig extends Record<string, unknown>>(
-  t: ColumnType<TConfig>,
-): AnyColumnType {
-  return t as unknown as AnyColumnType;
+export interface ColumnUI<
+  TConfig extends Record<string, unknown>,
+  TMeta = unknown,
+> extends PluginMeta<TConfig, TMeta> {
+  ConfigForm: ComponentType<ConfigFormProps<TConfig>>;
+  ItemRenderer: ComponentType<ItemRendererProps<TMeta>>;
 }
+
+/** Config-erased view stored in the registry. Meta is widened to `unknown` so
+ *  any concrete `TMeta` (with or without an index signature) flows through. */
+export type AnyColumnUI = ColumnUI<Record<string, unknown>, unknown>;
+
+/**
+ * Server-side fetch contract. Receives a validated config (already passed
+ * through the plugin's Zod schema) and an opaque cursor for pagination.
+ */
+export type ServerFetcher<
+  TConfig extends Record<string, unknown>,
+  TMeta = unknown,
+> = (config: TConfig, cursor?: string) => Promise<PageResult<TMeta>>;
+
+/** Server-side plugin registration: meta (incl. schema for validation) + fetcher. */
+export interface ColumnServer<
+  TConfig extends Record<string, unknown>,
+  TMeta = unknown,
+> {
+  meta: PluginMeta<TConfig, TMeta>;
+  fetch: ServerFetcher<TConfig, TMeta>;
+}
+
+export type AnyColumnServer = ColumnServer<Record<string, unknown>, unknown>;
+
+/**
+ * Registers a typed `ColumnUI<C, M>` as `AnyColumnUI` without sprinkling
+ * `as unknown as` casts. The cast is unsafe in principle (TConfig is invariant)
+ * but safe in practice because every consumer treats config + meta as opaque.
+ */
+export function defineColumnUI<
+  TConfig extends Record<string, unknown>,
+  TMeta = unknown,
+>(ui: ColumnUI<TConfig, TMeta>): AnyColumnUI {
+  return ui as unknown as AnyColumnUI;
+}
+
+export function defineColumnServer<
+  TConfig extends Record<string, unknown>,
+  TMeta = unknown,
+>(server: ColumnServer<TConfig, TMeta>): AnyColumnServer {
+  return server as unknown as AnyColumnServer;
+}
+
+// ---- Backwards-compat aliases (existing call sites) -------------------------
+// Old code imported `ColumnType` / `AnyColumnType`; these are now thin aliases
+// over `ColumnUI` / `AnyColumnUI`. New code should prefer the new names.
+export type ColumnType<
+  TConfig extends Record<string, unknown> = Record<string, unknown>,
+> = ColumnUI<TConfig>;
+export type AnyColumnType = AnyColumnUI;
 
 export interface Column {
   id: string;
