@@ -13,6 +13,7 @@ import { meta as webSearch } from "./web-search/plugin";
 import { meta as newsSearch } from "./news-search/plugin";
 import { meta as reddit } from "./reddit/plugin";
 import { meta as hackerNews } from "./hacker-news/plugin";
+import { meta as hackerNewsSearch } from "./hacker-news-search/plugin";
 import { meta as github } from "./github/plugin";
 import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
@@ -31,6 +32,7 @@ export const PLUGIN_METAS = [
   newsSearch,
   reddit,
   hackerNews,
+  hackerNewsSearch,
   github,
   rss,
   googleNews,

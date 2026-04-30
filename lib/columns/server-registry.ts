@@ -17,6 +17,7 @@ import { server as webSearch } from "@/lib/columns/plugins/web-search/server";
 import { server as newsSearch } from "@/lib/columns/plugins/news-search/server";
 import { server as reddit } from "@/lib/columns/plugins/reddit/server";
 import { server as hackerNews } from "@/lib/columns/plugins/hacker-news/server";
+import { server as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/server";
 import { server as github } from "@/lib/columns/plugins/github/server";
 import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
@@ -35,6 +36,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "news-search": newsSearch,
   reddit,
   "hacker-news": hackerNews,
+  "hacker-news-search": hackerNewsSearch,
   github,
   rss,
   "google-news": googleNews,

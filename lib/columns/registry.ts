@@ -21,6 +21,7 @@ import { column as webSearch } from "@/lib/columns/plugins/web-search/client";
 import { column as newsSearch } from "@/lib/columns/plugins/news-search/client";
 import { column as reddit } from "@/lib/columns/plugins/reddit/client";
 import { column as hackerNews } from "@/lib/columns/plugins/hacker-news/client";
+import { column as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/client";
 import { column as github } from "@/lib/columns/plugins/github/client";
 import { column as rss } from "@/lib/columns/plugins/rss/client";
 import { column as googleNews } from "@/lib/columns/plugins/google-news/client";
@@ -42,6 +43,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "news-search": newsSearch,
   reddit,
   "hacker-news": hackerNews,
+  "hacker-news-search": hackerNewsSearch,
   github,
   rss,
   "google-news": googleNews,
