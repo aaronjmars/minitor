@@ -28,6 +28,21 @@ import { column as mentions } from "@/lib/columns/plugins/mentions/client";
 import { column as farcaster } from "@/lib/columns/plugins/farcaster/client";
 import { column as youtube } from "@/lib/columns/plugins/youtube/client";
 import { column as newsnow } from "@/lib/columns/plugins/newsnow/client";
+import { column as instagram } from "@/lib/columns/plugins/instagram/client";
+import { column as rednote } from "@/lib/columns/plugins/rednote/client";
+import { column as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/client";
+import { column as githubSearch } from "@/lib/columns/plugins/github-search/client";
+import { column as tiktok } from "@/lib/columns/plugins/tiktok/client";
+import { column as weiboSearch } from "@/lib/columns/plugins/weibo-search/client";
+import { column as substack } from "@/lib/columns/plugins/substack/client";
+import { column as linkedin } from "@/lib/columns/plugins/linkedin/client";
+import { column as facebook } from "@/lib/columns/plugins/facebook/client";
+import { column as githubBacklinks } from "@/lib/columns/plugins/github-backlinks/client";
+import { column as walletTx } from "@/lib/columns/plugins/wallet-tx/client";
+import { column as githubPrs } from "@/lib/columns/plugins/github-prs/client";
+import { column as telegramSearch } from "@/lib/columns/plugins/telegram-search/client";
+import { column as appReviews } from "@/lib/columns/plugins/app-reviews/client";
+import { column as githubWatchers } from "@/lib/columns/plugins/github-watchers/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
 // read `column.id` reliably from a server context anyway, so the id has to
@@ -49,6 +64,21 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   farcaster,
   youtube,
   newsnow,
+  instagram,
+  rednote,
+  "hacker-news-search": hackerNewsSearch,
+  "github-search": githubSearch,
+  tiktok,
+  "weibo-search": weiboSearch,
+  substack,
+  linkedin,
+  facebook,
+  "github-backlinks": githubBacklinks,
+  "wallet-tx": walletTx,
+  "github-prs": githubPrs,
+  "telegram-search": telegramSearch,
+  "app-reviews": appReviews,
+  "github-watchers": githubWatchers,
 };
 
 // Pre-built ordered list, indexed by manifest order. Built once at module init.
