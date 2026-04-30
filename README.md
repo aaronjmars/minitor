@@ -23,20 +23,21 @@ Visually inspired by Cursor's warm-minimalism system (cream surfaces, warm near-
 Browser (React + zustand)
    │  optimistic mutation → calls server action
    ▼
-app/actions.ts  ── Drizzle ──▶ Neon Postgres  (decks, columns, feed_items)
+app/actions.ts  ── Drizzle ──▶ Postgres  (decks, columns, feed_items)
    │
    │   refresh flow:
    ▼
 app/api/columns/[type]/route.ts
-   │
+   │  Zod-validates body.config against the plugin's schema
    ▼
-lib/integrations/xai.ts  ──▶ xAI /v1/responses (Grok)
-                                   │
-                                   ▼
-                           tools: x_search, web_search
+lib/columns/server-registry.ts  →  plugins/<id>/server.ts  →  lib/integrations/<source>.ts
 ```
 
-Columns are pure plugins. A `ColumnType` is a config form + item renderer + fetch function registered once in `lib/columns/registry.ts`.
+Columns are pure plugins. Each column type lives in its own folder under
+`lib/columns/plugins/<id>/` with three files (`plugin.ts`, `client.tsx`,
+`server.ts`). Adding a new source is mechanical — copy `_template/`, fill
+in the schema + form + fetcher, register it. See [`lib/columns/README.md`](lib/columns/README.md)
+for the full contract.
 
 ## Setup
 
@@ -89,55 +90,99 @@ Set `DATABASE_URL` in `.env.local`:
 
 ## Column types
 
-Registered in `lib/columns/registry.ts`:
+Listed in `lib/columns/plugins/manifest.ts`:
 
-| Type id | Source | Config | Paginated |
+| Type id | Category | Source | Capabilities |
 |---|---|---|---|
-| `grok-ask` | xAI Grok with `x_search` + `web_search` | `{ prompt }` | — |
-| `x-search` | xAI `x_search` (keyword mode) | `{ query }` | — |
-| `x-user` | xAI `x_search` (user timeline) | `{ handle }` | — |
-| `x-mentions` | xAI `x_search` — mentions of `@handle` | `{ handle }` | — |
-| `x-trending` | xAI `x_search` — highest-engagement last 24h | `{ topic }` | — |
-| `web-search` | xAI `web_search` | `{ query }` | — |
-| `news-search` | xAI `web_search` — major publications | `{ query }` | — |
-| `hacker-news` | Algolia HN API (`top` / `new` / `search`) | `{ mode, query }` | page-based |
-| `reddit` | Reddit public JSON (`r/<sub>` + sort) | `{ subreddit, sortBy }` | `after` cursor |
-| `github` | GitHub REST (`trending` via search, `releases`, `issues`) | `{ mode, language, period, repo, query }` | page-based |
-| `rss` | Any RSS / Atom URL (built-in regex parser, no deps) | `{ url }` | — |
-| `google-news` | Google News RSS query | `{ query, hl, gl }` | — |
-| `mentions` | Multi-source fan-out: HN Algolia + Reddit search + Google News + Bing News, deduped on canonical URL | `{ query, sources }` | — |
-| `farcaster` | Neynar — **User** + **Search** modes (Search uses `NEYNAR_API_DOCS` demo-key fallback on free tier; Trending / Channel kept in code, gated behind paid plan, see `lib/integrations/farcaster.ts`) | `{ mode, username, query }` | — |
-| `youtube` | YouTube Data API v3 (search) + free Atom feeds (channel / playlist) | `{ mode, query, order, channel, playlist }` | `pageToken` (search) |
-| `newsnow` | NewsNow open hot-trends aggregator (Weibo, Zhihu, Douyin, Bilibili, Toutiao, Baidu, Tieba, Wallstreetcn, CLS, ThePaper, iFeng) — needs a browser User-Agent (Cloudflare) | `{ platform }` | — |
+| `grok-ask` | ai | xAI Grok with `x_search` + `web_search` | `requiresEnv: XAI_API_KEY` |
+| `x-search` | social | xAI `x_search` (keyword mode) | `requiresEnv: XAI_API_KEY` |
+| `x-user` | social | xAI `x_search` (user timeline) | `requiresEnv: XAI_API_KEY` |
+| `x-mentions` | social | xAI `x_search` — mentions of `@handle` | `requiresEnv: XAI_API_KEY` |
+| `x-trending` | social | xAI `x_search` — highest-engagement last 24h | `requiresEnv: XAI_API_KEY` |
+| `web-search` | ai | xAI `web_search` | `requiresEnv: XAI_API_KEY` |
+| `news-search` | news | xAI `web_search` — major publications | `requiresEnv: XAI_API_KEY` |
+| `hacker-news` | news | Algolia HN API (`top` / `new` / `ask` / `show` / `query`) | `paginated` (page-based) |
+| `reddit` | social | Reddit public JSON (`r/<sub>` + sort) | `paginated` (`after` cursor) |
+| `github` | social | GitHub REST (`trending` via search, `releases`, `issues`) | `paginated` (page-based) |
+| `rss` | news | Any RSS / Atom URL (built-in regex parser, no deps) | — |
+| `google-news` | news | Google News RSS query | — |
+| `mentions` | news | Multi-source fan-out: HN Algolia + Reddit search + Google News + Bing News, deduped on canonical URL | — |
+| `farcaster` | social | Neynar — **User** + **Search** modes (Search uses `NEYNAR_API_DOCS` demo-key fallback on free tier; Trending / Channel kept in code, gated behind paid plan) | `requiresEnv: NEYNAR_API_KEY` |
+| `youtube` | video | YouTube Data API v3 (search) + free Atom feeds (channel / playlist) | `paginated` (`pageToken` on search), `requiresEnv: YOUTUBE_API_KEY` |
+| `newsnow` | news | NewsNow open hot-trends aggregator (Weibo, Zhihu, Douyin, Bilibili, Toutiao, Baidu, Tieba, Wallstreetcn, CLS, ThePaper, iFeng) | — |
+
+### Plugin contract
+
+Each column type is a folder of three files. The split is structural:
+`plugin.ts` is pure (no JSX, no server-only deps) so it can be evaluated on
+either side of the `"use client"` boundary; `client.tsx` and `server.ts`
+carry their respective directives.
+
+```
+lib/columns/plugins/<id>/
+  plugin.ts     # id, label, icon, Zod schema, defaultConfig, capabilities
+  client.tsx    # "use client"   — ConfigForm + ItemRenderer
+  server.ts     # "server-only"  — fetch function (talks to upstream APIs)
+```
+
+Three things make adding a plugin cheap:
+
+- **Zod schema in `plugin.ts`** is the single source of truth for the
+  config shape. The API route validates `body.config` against it before
+  calling the fetcher, so server code receives a fully-typed config and
+  bad client input returns a structured 400 with field-level errors.
+- **Typed `meta` per plugin** — declare a `TMeta` interface and the
+  renderer receives `FeedItem<TMeta>` directly (no `typeof m.foo === "number"`
+  guards).
+- **Capabilities object** declares `paginated`, `requiresEnv`, `rateLimitHint`,
+  `refreshIntervalHintMs`. The "Add column" dialog auto-renders a hint when
+  `requiresEnv` or `rateLimitHint` is set, and the column card uses
+  `capabilities.paginated` to decide whether to show **Load more**.
+
+A canonical id list lives in `lib/columns/plugins/manifest.ts` and is
+imported by both `registry.ts` (client UI) and `server-registry.ts`
+(server fetchers). The server registry runs a parity check at module init
+and throws loudly if either registry is out of sync with the manifest —
+that's the only thing standing between you and a 404 / silent breakage in
+production.
 
 ### Adding a new column type
 
-1. Create `lib/columns/my-type.tsx` exporting a `ColumnType`:
-   - `id`, `label`, `description`, `icon`, `accent`
-   - `defaultConfig`, `defaultTitle(config)`
-   - `ConfigForm({ value, onChange })` — shadcn inputs
-   - `ItemRenderer({ item })` — reuse `TweetItem` (`lib/columns/shared/tweet-renderer`) or `LinkItem` (`lib/columns/shared/link-renderer`) if the shape fits
-   - `fetch(config)` — POST to `/api/columns/my-type` and parse `{ items: FeedItem[] }`
-   - `fetchPage(config, cursor?)` *(optional)* — for paginated sources. Returns `{ items, nextCursor? }`. The card auto-renders a **Load more** button when this is defined and the last response had a cursor. Cursor is opaque (page number, `after` token, `pageToken`, etc.).
-2. Register it in `lib/columns/registry.ts` (one line).
-3. Add a case in `app/api/columns/[type]/route.ts` — for paginated types, branch on `op === "loadMore"` and the incoming `cursor`, then return `{ items, nextCursor }`. For one-shot types, just return `{ items }`.
+1. Copy `lib/columns/plugins/_template/` to `lib/columns/plugins/<your-id>/`.
+2. Edit `plugin.ts` — pick id/label/icon/category, define a Zod schema,
+   declare your `TMeta`, set `capabilities`.
+3. Edit `client.tsx` — implement `ConfigForm` + `ItemRenderer`. Reuse
+   `TweetItem` or `LinkItem` from `lib/columns/shared/` if the shape fits.
+4. Edit `server.ts` — implement the fetcher. The `config` you receive is
+   already typed and validated by your schema.
+5. Add three lines: one entry each in `manifest.ts`, `registry.ts`, and
+   `server-registry.ts`.
+6. `npm run build` — the parity check throws if any of the three are out
+   of sync.
 
-That's it — the picker, sidebar nav, command palette, persistence, auto-refresh on creation, and Load more all pick it up automatically.
+That's it. Picker, sidebar nav, command palette, persistence, auto-refresh,
+and Load more all pick it up automatically. See [`lib/columns/README.md`](lib/columns/README.md)
+for the full walkthrough.
 
 ### Pagination contract
 
-The unified shape used by every paginated integration:
+Every plugin's `server.ts` returns the same shape:
 
 ```ts
-type PageResult = { items: FeedItem[]; nextCursor?: string };
+type PageResult<TMeta> = { items: FeedItem<TMeta>[]; nextCursor?: string };
 ```
 
-`nextCursor` semantics on the column card:
-- `undefined` → unknown (initial state, or non-paginated type)
+`nextCursor` is opaque end-to-end — encode whatever your upstream paginates
+with (page number, `after` token, `pageToken`, etc.) as a string. The
+shared API client and column card never inspect it. Semantics on the card:
+
+- `undefined` → unknown (initial state, or `capabilities.paginated` is false)
 - `string`    → render **Load more**, pass back as `cursor` on next call
 - `null`      → exhausted, render "End of results"
 
-Refreshing always resets the cursor to the first page. New items are deduped against the column's stored set in `applyFetchedItems`; items are capped at 200 per column with the oldest pruned on refresh.
+Refreshing always resets the cursor to the first page. New items are
+deduped against the column's stored set in `applyFetchedItems`; items
+are capped at 200 per column with the oldest pruned on refresh.
 
 ## Data model
 
@@ -172,12 +217,29 @@ lib/
     youtube.ts                    # Data API v3 search (paged via pageToken) + Atom for channel/playlist
     newsnow.ts                    # 11 platforms (Weibo, Zhihu, Douyin, Bilibili, Toutiao, Baidu, Tieba, WSCN, CLS, ThePaper, iFeng)
   columns/
-    types.ts                      # ColumnType / FeedItem / Column / Deck / PageResult
-    registry.ts                   # single source of truth for installed types
+    README.md                     # how to add a new column type
+    types.ts                      # ColumnUI / ColumnServer / PluginMeta / FeedItem / PageResult / capabilities
+    registry.ts                   # client UI by id (consumed by add-column-dialog, column-card, etc.)
+    server-registry.ts            # server fetchers by id, with parity check at module init
+    api-client.ts                 # callColumnApi(typeId, config, cursor?)
+    constants.ts                  # PAGE_SIZE, MAX_ITEMS_PER_COLUMN, BEAM_MIN_DURATION_MS
     shared/{tweet,link}-renderer.tsx
-    grok-ask.tsx / x-*.tsx / web-search.tsx / news-search.tsx
-    reddit.tsx hacker-news.tsx github.tsx rss.tsx google-news.tsx
-    mentions.tsx farcaster.tsx youtube.tsx newsnow.tsx
+    plugins/
+      manifest.ts                 # canonical id list — single source of truth
+      _template/                  # copyable starter (NOT registered)
+      reddit/{plugin,client,server}.ts
+      hacker-news/{plugin,client,server}.ts
+      github/{plugin,client,server}.ts
+      youtube/{plugin,client,server}.ts
+      farcaster/{plugin,client,server}.ts
+      mentions/{plugin,client,server}.ts
+      newsnow/{plugin,client,server}.ts
+      rss/{plugin,client,server}.ts
+      google-news/{plugin,client,server}.ts
+      grok-ask/{plugin,client,server}.ts
+      x-{search,user,mentions,trending}/{plugin,client,server}.ts
+      web-search/{plugin,client,server}.ts
+      news-search/{plugin,client,server}.ts
   store/use-deck-store.ts         # zustand store; pendingCreates Map for FK-safe auto-fetch; autoFetchingIds Set drives the beam
 
 components/

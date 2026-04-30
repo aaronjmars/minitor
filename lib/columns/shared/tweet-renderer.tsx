@@ -1,8 +1,20 @@
 "use client";
 
 import { Heart, MessageCircle, Repeat2 } from "lucide-react";
-import type { FeedItem } from "@/lib/columns/types";
+import type { ItemRendererProps } from "@/lib/columns/types";
 import { RelativeTime } from "@/components/relative-time";
+
+/**
+ * Shared metadata shape for tweet-style feed items. The four X-* plugins all
+ * register this as their TMeta, so this component is typed against it directly
+ * instead of doing runtime type guards.
+ */
+export interface TweetMeta {
+  likes: number;
+  retweets: number;
+  replies: number;
+  views?: number;
+}
 
 export function compact(n: number): string {
   if (Math.abs(n) < 1000) return String(n);
@@ -12,11 +24,10 @@ export function compact(n: number): string {
   return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
 }
 
-export function TweetItem({ item }: { item: FeedItem }) {
-  const m = item.meta ?? {};
-  const likes = typeof m.likes === "number" ? m.likes : 0;
-  const retweets = typeof m.retweets === "number" ? m.retweets : 0;
-  const replies = typeof m.replies === "number" ? m.replies : 0;
+export function TweetItem({ item }: ItemRendererProps<TweetMeta>) {
+  const likes = item.meta?.likes ?? 0;
+  const retweets = item.meta?.retweets ?? 0;
+  const replies = item.meta?.replies ?? 0;
   return (
     <a
       href={item.url}

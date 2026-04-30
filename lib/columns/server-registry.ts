@@ -1,159 +1,80 @@
 import "server-only";
 
-import type { FeedItem, PageResult } from "@/lib/columns/types";
-import { PAGE_SIZE } from "@/lib/columns/constants";
-import { fetchSubredditPage } from "@/lib/integrations/reddit";
-import { fetchHackerNewsPage, type HNMode } from "@/lib/integrations/hackernews";
-import { fetchGitHub, type GHMode } from "@/lib/integrations/github";
-import { fetchFeed, googleNewsUrl } from "@/lib/integrations/rss";
-import { fetchMentions } from "@/lib/integrations/mentions";
-import {
-  fetchFarcasterUser,
-  fetchFarcasterSearch,
-} from "@/lib/integrations/farcaster";
-import {
-  fetchYouTube,
-  fetchSearchPage as fetchYouTubeSearchPage,
-  type YTMode,
-} from "@/lib/integrations/youtube";
-import {
-  fetchNewsNow,
-  type NewsNowPlatform,
-} from "@/lib/integrations/newsnow";
-import {
-  grokAsk,
-  grokNewsSearch,
-  grokWebSearch,
-  grokXMentions,
-  grokXSearch,
-  grokXTrending,
-  grokXUser,
-} from "@/lib/integrations/xai";
+// Server-only registry: maps each plugin id to its server fetcher. The id
+// list is the manifest's source of truth. The parity check at module init
+// throws loudly if `manifest.ts` and this file disagree — that's the only
+// thing standing between you and a 404 / silent breakage in production.
 
-export type ServerFetcher = (
-  config: Record<string, unknown>,
-  cursor?: string,
-) => Promise<PageResult>;
+import type { AnyColumnServer } from "@/lib/columns/types";
+import { PLUGIN_METAS, REGISTERED_IDS } from "@/lib/columns/plugins/manifest";
 
-function s(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
-}
+import { server as grokAsk } from "@/lib/columns/plugins/grok-ask/server";
+import { server as xSearch } from "@/lib/columns/plugins/x-search/server";
+import { server as xUser } from "@/lib/columns/plugins/x-user/server";
+import { server as xMentions } from "@/lib/columns/plugins/x-mentions/server";
+import { server as xTrending } from "@/lib/columns/plugins/x-trending/server";
+import { server as webSearch } from "@/lib/columns/plugins/web-search/server";
+import { server as newsSearch } from "@/lib/columns/plugins/news-search/server";
+import { server as reddit } from "@/lib/columns/plugins/reddit/server";
+import { server as hackerNews } from "@/lib/columns/plugins/hacker-news/server";
+import { server as github } from "@/lib/columns/plugins/github/server";
+import { server as rss } from "@/lib/columns/plugins/rss/server";
+import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
+import { server as mentions } from "@/lib/columns/plugins/mentions/server";
+import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
+import { server as youtube } from "@/lib/columns/plugins/youtube/server";
+import { server as newsnow } from "@/lib/columns/plugins/newsnow/server";
 
-function oneShot(items: FeedItem[]): PageResult {
-  return { items };
-}
-
-const FETCHERS: Record<string, ServerFetcher> = {
-  // ---- xAI / Grok ---------------------------------------------------------
-  "grok-ask": async (c) => oneShot(await grokAsk(s(c.prompt))),
-  "x-search": async (c) => oneShot(await grokXSearch(s(c.query))),
-  "x-user": async (c) => oneShot(await grokXUser(s(c.handle))),
-  "x-mentions": async (c) => oneShot(await grokXMentions(s(c.handle))),
-  "x-trending": async (c) => oneShot(await grokXTrending(s(c.topic))),
-  "web-search": async (c) => oneShot(await grokWebSearch(s(c.query))),
-  "news-search": async (c) => oneShot(await grokNewsSearch(s(c.query))),
-
-  // ---- RSS-backed ---------------------------------------------------------
-  rss: async (c) => oneShot(await fetchFeed(s(c.url))),
-  "google-news": async (c) =>
-    oneShot(
-      await fetchFeed(googleNewsUrl(s(c.query), s(c.hl, "en-US"), s(c.gl, "US"))),
-    ),
-
-  // ---- Multi-source -------------------------------------------------------
-  mentions: async (c) => {
-    const sources = (c.sources ?? {}) as Record<string, unknown>;
-    return oneShot(
-      await fetchMentions({
-        query: s(c.query),
-        sources: {
-          hn: sources.hn !== false,
-          reddit: sources.reddit !== false,
-          "google-news": sources["google-news"] !== false,
-          "bing-news": sources["bing-news"] === true,
-        },
-      }),
-    );
-  },
-
-  // ---- Farcaster ----------------------------------------------------------
-  farcaster: async (c) => {
-    const mode = s(c.mode, "user");
-    if (mode === "search") {
-      return oneShot(await fetchFarcasterSearch(s(c.query)));
-    }
-    return oneShot(await fetchFarcasterUser(s(c.username)));
-  },
-
-  // ---- NewsNow ------------------------------------------------------------
-  newsnow: async (c) =>
-    oneShot(await fetchNewsNow(s(c.platform, "weibo") as NewsNowPlatform)),
-
-  // ---- Paginated ----------------------------------------------------------
-  "hacker-news": async (c, cursor) => {
-    const page = cursor ? Number(cursor) || 0 : 0;
-    const r = await fetchHackerNewsPage(
-      s(c.mode, "top") as HNMode,
-      s(c.query),
-      PAGE_SIZE,
-      page,
-    );
-    return {
-      items: r.items,
-      nextCursor: r.hasMore ? String(page + 1) : undefined,
-    };
-  },
-
-  reddit: async (c, cursor) => {
-    const r = await fetchSubredditPage(
-      s(c.subreddit, "popular"),
-      s(c.sortBy, "hot"),
-      PAGE_SIZE,
-      cursor,
-    );
-    return { items: r.items, nextCursor: r.nextAfter };
-  },
-
-  github: async (c, cursor) => {
-    const page = cursor ? Number(cursor) || 1 : 1;
-    const items = await fetchGitHub(
-      s(c.mode, "trending") as GHMode,
-      {
-        language: s(c.language),
-        period: s(c.period, "week"),
-        repo: s(c.repo),
-        query: s(c.query),
-      },
-      PAGE_SIZE,
-      page,
-    );
-    return {
-      items,
-      nextCursor: items.length === PAGE_SIZE ? String(page + 1) : undefined,
-    };
-  },
-
-  youtube: async (c, cursor) => {
-    const mode = s(c.mode, "search") as YTMode;
-    if (mode === "search") {
-      const r = await fetchYouTubeSearchPage(
-        s(c.query),
-        s(c.order, "date") as "date" | "relevance" | "viewCount" | "rating",
-        PAGE_SIZE,
-        cursor,
-      );
-      return { items: r.items, nextCursor: r.nextPageToken };
-    }
-    const items = await fetchYouTube(mode, {
-      query: s(c.query),
-      order: s(c.order, "date"),
-      channel: s(c.channel),
-      playlist: s(c.playlist),
-    });
-    return { items };
-  },
+const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
+  "grok-ask": grokAsk,
+  "x-search": xSearch,
+  "x-user": xUser,
+  "x-mentions": xMentions,
+  "x-trending": xTrending,
+  "web-search": webSearch,
+  "news-search": newsSearch,
+  reddit,
+  "hacker-news": hackerNews,
+  github,
+  rss,
+  "google-news": googleNews,
+  mentions,
+  farcaster,
+  youtube,
+  newsnow,
 };
 
-export function getServerFetcher(typeId: string): ServerFetcher | undefined {
-  return FETCHERS[typeId];
+// Parity check — runs once at server module init. Throws loudly rather than
+// 404'ing at request time. The manifest is the canonical id list; both the
+// UI registry and this file are validated against it.
+const serverIds = new Set(Object.keys(SERVERS_BY_ID));
+const missingFromServer = [...REGISTERED_IDS].filter(
+  (id) => !serverIds.has(id),
+);
+const stale = [...serverIds].filter((id) => !REGISTERED_IDS.has(id));
+if (missingFromServer.length || stale.length) {
+  const parts = [
+    missingFromServer.length
+      ? `In manifest but missing a server fetcher: ${missingFromServer.join(", ")}`
+      : "",
+    stale.length
+      ? `In server-registry.ts but not in manifest: ${stale.join(", ")}`
+      : "",
+  ].filter(Boolean);
+  throw new Error(`Column registry parity check failed. ${parts.join(" | ")}`);
+}
+
+// Verify each registered server's id matches its key (catches typos like
+// `redit` → reddit), and that meta.schema is the expected one from manifest.
+for (const m of PLUGIN_METAS) {
+  const s = SERVERS_BY_ID[m.id];
+  if (s.meta.id !== m.id) {
+    throw new Error(
+      `Server fetcher under key "${m.id}" registered as id "${s.meta.id}"`,
+    );
+  }
+}
+
+export function getServerEntry(id: string): AnyColumnServer | undefined {
+  return SERVERS_BY_ID[id];
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerFetcher } from "@/lib/columns/server-registry";
+import { getServerEntry } from "@/lib/columns/server-registry";
 
 // Grok calls are slow and expensive — don't cache, always fresh on refresh.
 export const dynamic = "force-dynamic";
@@ -9,8 +9,8 @@ type RouteContext = { params: Promise<{ type: string }> };
 
 export async function POST(req: Request, context: RouteContext) {
   const { type } = await context.params;
-  const fetcher = getServerFetcher(type);
-  if (!fetcher) {
+  const entry = getServerEntry(type);
+  if (!entry) {
     return NextResponse.json(
       { error: `Unknown column type: ${type}` },
       { status: 404 },
@@ -18,14 +18,32 @@ export async function POST(req: Request, context: RouteContext) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const config = (body?.config ?? {}) as Record<string, unknown>;
+  const rawConfig = body?.config ?? {};
   const cursor =
     body?.op === "loadMore" && typeof body?.cursor === "string"
       ? (body.cursor as string)
       : undefined;
 
+  // Validate config against the plugin's Zod schema. Zod fills in defaults for
+  // missing fields, so a fully-valid config is guaranteed before we hit the
+  // fetcher. Bad input → 400 with a structured field-level error so the UI
+  // can show actionable messages instead of generic "fetch failed".
+  const parsed = entry.meta.schema.safeParse(rawConfig);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid config",
+        issues: parsed.error.issues.map((i) => ({
+          path: i.path.join("."),
+          message: i.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
   try {
-    const result = await fetcher(config, cursor);
+    const result = await entry.fetch(parsed.data, cursor);
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";

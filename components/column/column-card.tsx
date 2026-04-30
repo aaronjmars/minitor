@@ -82,6 +82,8 @@ export function ColumnCard({ column }: { column: Column }) {
   const Icon = type.icon;
   const ItemRenderer = type.ItemRenderer;
 
+  const paginated = type?.capabilities?.paginated === true;
+
   async function onRefresh() {
     if (!type) return;
     setIsFetching(true);
@@ -92,7 +94,7 @@ export function ColumnCard({ column }: { column: Column }) {
       );
       const count = await applyFetchedItems(column.id, items);
       // Reset pagination cursor on a fresh refresh.
-      setNextCursor(type.paginated ? (cursor ?? null) : undefined);
+      setNextCursor(paginated ? (cursor ?? null) : undefined);
       toast.success(count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items", {
         description: column.title,
       });
@@ -106,7 +108,7 @@ export function ColumnCard({ column }: { column: Column }) {
   }
 
   async function onLoadMore() {
-    if (!type?.paginated) return;
+    if (!paginated) return;
     if (typeof nextCursor !== "string") return;
     setIsLoadingMore(true);
     try {
@@ -248,7 +250,7 @@ export function ColumnCard({ column }: { column: Column }) {
               {column.items.map((item) => (
                 <ItemRenderer key={item.id} item={item} />
               ))}
-              {type.paginated && typeof nextCursor === "string" && (
+              {paginated && typeof nextCursor === "string" && (
                 <button
                   type="button"
                   onClick={onLoadMore}
@@ -265,7 +267,7 @@ export function ColumnCard({ column }: { column: Column }) {
                   )}
                 </button>
               )}
-              {type.paginated && nextCursor === null && (
+              {paginated && nextCursor === null && (
                 <div className="px-3.5 py-3 text-center text-[11.5px] text-muted-foreground/70">
                   End of results
                 </div>
