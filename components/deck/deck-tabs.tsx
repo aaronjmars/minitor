@@ -78,7 +78,7 @@ export function DeckTabs() {
                     name={deck.name}
                     columnCount={deck.columnIds.length}
                     active={id === activeDeckId}
-                    onClick={() => setActiveDeck(id)}
+                    onSelect={() => setActiveDeck(id)}
                   />
                 );
               })}

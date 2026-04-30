@@ -41,18 +41,27 @@ export interface ColumnType<TConfig extends Record<string, unknown> = Record<str
   defaultTitle: (config: TConfig) => string;
   ConfigForm: ComponentType<ConfigFormProps<TConfig>>;
   ItemRenderer: ComponentType<ItemRendererProps>;
-  fetch: (config: TConfig) => Promise<FeedItem[]>;
   /**
-   * Optional pagination. When defined, the column-card will:
-   *  1. Call `fetchPage(config)` for the initial fetch and stash `nextCursor`.
-   *  2. Show a "Load more" button while `nextCursor !== undefined`.
-   *  3. On click, call `fetchPage(config, cursor)` with the latest cursor,
-   *     append items, replace the cursor.
-   *
-   * Integrations that don't paginate naturally (RSS, X-via-Grok, etc.) leave
-   * this undefined — those columns get no Load More button.
+   * If true, the API may return a `nextCursor` and the column card renders
+   * Load more. The same value reaching `null` from the server means
+   * "exhausted". One-shot integrations (Grok, RSS, etc.) leave this false.
    */
-  fetchPage?: (config: TConfig, cursor?: string) => Promise<PageResult>;
+  paginated?: boolean;
+}
+
+/** Config-erased view of a registered column type — what the registry stores. */
+export type AnyColumnType = ColumnType<Record<string, unknown>>;
+
+/**
+ * Registers a typed `ColumnType<T>` as an `AnyColumnType` without sprinkling
+ * `as unknown as` casts at every call site. The cast is unsafe in principle
+ * (TConfig is invariant) but safe in practice because every consumer treats
+ * the config as opaque JSON.
+ */
+export function defineColumnType<TConfig extends Record<string, unknown>>(
+  t: ColumnType<TConfig>,
+): AnyColumnType {
+  return t as unknown as AnyColumnType;
 }
 
 export interface Column {

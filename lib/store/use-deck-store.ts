@@ -3,7 +3,9 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
-import type { Column, ColumnType, Deck, FeedItem } from "@/lib/columns/types";
+import type { AnyColumnType, Column, Deck, FeedItem } from "@/lib/columns/types";
+import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
+import { callColumnApi } from "@/lib/columns/api-client";
 import {
   createColumn as serverCreateColumn,
   createDeck as serverCreateDeck,
@@ -17,8 +19,6 @@ import {
   updateColumnConfig as serverUpdateConfig,
   type Snapshot,
 } from "@/app/actions";
-
-const MAX_ITEMS_PER_COLUMN = 200;
 
 interface DeckState {
   hydrated: boolean;
@@ -41,14 +41,18 @@ interface DeckState {
     typeId: string,
     title: string,
     config: Record<string, unknown>,
-  ) => string;
+  ) => { id: string; ready: Promise<void> };
   updateColumnConfig: (columnId: string, config: Record<string, unknown>) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
 
   applyFetchedItems: (columnId: string, items: FeedItem[]) => Promise<number>;
-  autoFetchColumn: (columnId: string, type: ColumnType) => Promise<void>;
+  autoFetchColumn: (
+    columnId: string,
+    type: AnyColumnType,
+    ready?: Promise<void>,
+  ) => Promise<void>;
 }
 
 function fireAndLog<T>(label: string, p: Promise<T>) {
@@ -56,11 +60,6 @@ function fireAndLog<T>(label: string, p: Promise<T>) {
     console.error(`[minitor] server action "${label}" failed:`, err);
   });
 }
-
-// Tracks the in-flight server-side create for each new column id so that
-// auto-fetch (which inserts feed_items referencing column.id via FK) can
-// wait for the column row to actually exist on the server before firing.
-const pendingCreates = new Map<string, Promise<unknown>>();
 
 export const useDeckStore = create<DeckState>()((set, get) => ({
   hydrated: false,
@@ -141,10 +140,9 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         },
       };
     });
-    const createPromise = serverCreateColumn(id, deckId, typeId, title, config);
-    pendingCreates.set(id, createPromise);
-    fireAndLog("createColumn", createPromise);
-    return id;
+    const ready = serverCreateColumn(id, deckId, typeId, title, config);
+    fireAndLog("createColumn", ready);
+    return { id, ready: ready.then(() => undefined) };
   },
 
   updateColumnConfig: (columnId, config) => {
@@ -193,7 +191,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
     fireAndLog("reorderColumnsInDeck", serverReorderColumns(deckId, order));
   },
 
-  autoFetchColumn: async (columnId, type) => {
+  autoFetchColumn: async (columnId, type, ready) => {
     const col = get().columns[columnId];
     if (!col) return;
     set((s) => {
@@ -201,17 +199,12 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       next.add(columnId);
       return { autoFetchingIds: next };
     });
-    const started = Date.now();
     try {
       // Wait for the server-side INSERT into columns to land before persisting
       // feed_items, otherwise the FK insert in persistFetchedItems races and
       // throws "violates foreign key constraint".
-      const create = pendingCreates.get(columnId);
-      if (create) {
-        await create.catch(() => undefined);
-        pendingCreates.delete(columnId);
-      }
-      const items = await type.fetch(col.config as never);
+      if (ready) await ready.catch(() => undefined);
+      const { items } = await callColumnApi(type.id, col.config);
       const count = await get().applyFetchedItems(columnId, items);
       toast.success(
         count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items",
@@ -222,9 +215,6 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         description: err instanceof Error ? err.message : "Unknown error",
       });
     } finally {
-      // Match the manual-refresh minimum so the beam animation registers.
-      const remaining = Math.max(0, 1800 - (Date.now() - started));
-      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
       set((s) => {
         const next = new Set(s.autoFetchingIds);
         next.delete(columnId);

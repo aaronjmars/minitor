@@ -224,30 +224,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchPage(
-  config: YTConfig,
-  cursor?: string,
-): Promise<{ items: FeedItem[]; nextCursor?: string }> {
-  const res = await fetch("/api/columns/youtube", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      config,
-      ...(cursor !== undefined ? { op: "loadMore", cursor } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  return (await res.json()) as { items: FeedItem[]; nextCursor?: string };
-}
-
-async function fetchItems(config: YTConfig): Promise<FeedItem[]> {
-  const { items } = await fetchPage(config);
-  return items;
-}
-
 function defaultTitle(c: YTConfig): string {
   if (c.mode === "channel") {
     const ch = c.channel.trim().replace(/^@/, "");
@@ -271,8 +247,7 @@ export const youtubeType: ColumnType<YTConfig> = {
   defaultTitle,
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
-  // Only Search mode actually paginates server-side; Channel/Playlist modes
-  // get the column-card to ignore nextCursor since the route returns none.
-  fetchPage,
+  // Only Search mode actually paginates server-side; the API returns no
+  // nextCursor for Channel/Playlist modes, so the card hides Load more there.
+  paginated: true,
 };

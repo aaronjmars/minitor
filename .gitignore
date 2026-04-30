@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local PGlite database (default when DATABASE_URL is unset)
+/.minitor/

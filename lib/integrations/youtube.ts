@@ -122,8 +122,8 @@ export async function fetchSearchPage(
     if (v.id) detail.set(v.id, v);
   }
 
-  const mapped = items
-    .map((it) => {
+  const mapped: FeedItem[] = items
+    .map((it): FeedItem | null => {
       const videoId = it.id?.videoId;
       const sn = it.snippet;
       if (!videoId || !sn) return null;
@@ -157,7 +157,7 @@ export async function fetchSearchPage(
             ? Number(d.statistics.likeCount)
             : undefined,
         },
-      } satisfies FeedItem;
+      };
     })
     .filter((i): i is FeedItem => i !== null);
   return { items: mapped, nextPageToken: sJson.nextPageToken };

@@ -290,30 +290,6 @@ function MetaRow({
   return null;
 }
 
-async function fetchPage(
-  config: GHConfig,
-  cursor?: string,
-): Promise<{ items: FeedItem[]; nextCursor?: string }> {
-  const res = await fetch("/api/columns/github", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      config,
-      ...(cursor !== undefined ? { op: "loadMore", cursor } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  return (await res.json()) as { items: FeedItem[]; nextCursor?: string };
-}
-
-async function fetchItems(config: GHConfig): Promise<FeedItem[]> {
-  const { items } = await fetchPage(config);
-  return items;
-}
-
 function defaultTitle(c: GHConfig): string {
   if (c.mode === "releases") {
     return c.repo.trim() ? `Releases · ${c.repo.trim()}` : "GitHub · Releases";
@@ -335,6 +311,5 @@ export const githubType: ColumnType<GHConfig> = {
   defaultTitle,
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
-  fetchPage,
+  paginated: true,
 };

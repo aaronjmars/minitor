@@ -155,30 +155,6 @@ function ItemRenderer({ item }: { item: FeedItem }) {
   );
 }
 
-async function fetchPage(
-  config: HNConfig,
-  cursor?: string,
-): Promise<{ items: FeedItem[]; nextCursor?: string }> {
-  const res = await fetch("/api/columns/hacker-news", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      config,
-      ...(cursor !== undefined ? { op: "loadMore", cursor } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  return (await res.json()) as { items: FeedItem[]; nextCursor?: string };
-}
-
-async function fetchItems(config: HNConfig): Promise<FeedItem[]> {
-  const { items } = await fetchPage(config);
-  return items;
-}
-
 export const hackerNewsType: ColumnType<HNConfig> = {
   id: "hacker-news",
   label: "Hacker News",
@@ -192,6 +168,5 @@ export const hackerNewsType: ColumnType<HNConfig> = {
       : `HN · ${MODE_LABELS[c.mode]}`,
   ConfigForm,
   ItemRenderer,
-  fetch: fetchItems,
-  fetchPage,
+  paginated: true,
 };

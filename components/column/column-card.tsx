@@ -27,7 +27,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getColumnType } from "@/lib/columns/registry";
+import { callColumnApi } from "@/lib/columns/api-client";
 import { useDeckStore } from "@/lib/store/use-deck-store";
+import { useMinDuration } from "@/hooks/use-min-duration";
+import { BEAM_MIN_DURATION_MS } from "@/lib/columns/constants";
 import type { Column } from "@/lib/columns/types";
 import { ConfigureColumnDialog } from "@/components/column/configure-column-dialog";
 import { RenameDialog } from "@/components/dialogs/rename-dialog";
@@ -38,9 +41,11 @@ export function ColumnCard({ column }: { column: Column }) {
   const removeColumn = useDeckStore((s) => s.removeColumn);
   const applyFetchedItems = useDeckStore((s) => s.applyFetchedItems);
   const renameColumn = useDeckStore((s) => s.renameColumn);
-  const isAutoFetching = useDeckStore((s) => s.autoFetchingIds.has(column.id));
+  const isAutoFetchingRaw = useDeckStore((s) => s.autoFetchingIds.has(column.id));
 
-  const [isFetching, setIsFetching] = useState(false);
+  const [isFetchingRaw, setIsFetching] = useState(false);
+  const isFetching = useMinDuration(isFetchingRaw, BEAM_MIN_DURATION_MS);
+  const isAutoFetching = useMinDuration(isAutoFetchingRaw, BEAM_MIN_DURATION_MS);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // undefined = unknown (initial state, never fetched OR no pagination support)
   // string = ready to load that page
@@ -80,20 +85,14 @@ export function ColumnCard({ column }: { column: Column }) {
   async function onRefresh() {
     if (!type) return;
     setIsFetching(true);
-    const started = Date.now();
     try {
-      let items;
-      let cursor: string | undefined;
-      if (type.fetchPage) {
-        const r = await type.fetchPage(column.config as never);
-        items = r.items;
-        cursor = r.nextCursor;
-      } else {
-        items = await type.fetch(column.config as never);
-      }
+      const { items, nextCursor: cursor } = await callColumnApi(
+        type.id,
+        column.config,
+      );
       const count = await applyFetchedItems(column.id, items);
       // Reset pagination cursor on a fresh refresh.
-      setNextCursor(type.fetchPage ? (cursor ?? null) : undefined);
+      setNextCursor(type.paginated ? (cursor ?? null) : undefined);
       toast.success(count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items", {
         description: column.title,
       });
@@ -102,22 +101,16 @@ export function ColumnCard({ column }: { column: Column }) {
         description: err instanceof Error ? err.message : "Unknown error",
       });
     } finally {
-      // Keep the beam visible for a minimum duration so the animation registers.
-      const elapsed = Date.now() - started;
-      const remaining = Math.max(0, 1800 - elapsed);
-      if (remaining > 0) {
-        await new Promise((r) => setTimeout(r, remaining));
-      }
       setIsFetching(false);
     }
   }
 
   async function onLoadMore() {
-    if (!type?.fetchPage) return;
+    if (!type?.paginated) return;
     if (typeof nextCursor !== "string") return;
     setIsLoadingMore(true);
     try {
-      const r = await type.fetchPage(column.config as never, nextCursor);
+      const r = await callColumnApi(type.id, column.config, nextCursor);
       await applyFetchedItems(column.id, r.items);
       setNextCursor(r.nextCursor ?? null);
     } catch (err) {
@@ -255,7 +248,7 @@ export function ColumnCard({ column }: { column: Column }) {
               {column.items.map((item) => (
                 <ItemRenderer key={item.id} item={item} />
               ))}
-              {type.fetchPage && typeof nextCursor === "string" && (
+              {type.paginated && typeof nextCursor === "string" && (
                 <button
                   type="button"
                   onClick={onLoadMore}
@@ -272,7 +265,7 @@ export function ColumnCard({ column }: { column: Column }) {
                   )}
                 </button>
               )}
-              {type.fetchPage && nextCursor === null && (
+              {type.paginated && nextCursor === null && (
                 <div className="px-3.5 py-3 text-center text-[11.5px] text-muted-foreground/70">
                   End of results
                 </div>
