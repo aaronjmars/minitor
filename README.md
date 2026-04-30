@@ -8,7 +8,10 @@ Visually inspired by Cursor's warm-minimalism system (cream surfaces, warm near-
 
 - **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript**
 - **Tailwind v4** + **shadcn/ui** (`base-nova` style on `@base-ui/react`) + **blocks.so** registry
-- **Neon Postgres** via `@neondatabase/serverless` and **Drizzle ORM**
+- **Postgres** via **Drizzle ORM**, with three driver choices picked at runtime by `DATABASE_URL`:
+  - default (no env): **PGlite** — embedded Postgres compiled to WASM, file-backed at `.minitor/pgdata/`. Zero setup.
+  - any `postgres://` URL: **node-postgres** pool.
+  - any `*.neon.tech` URL: **`@neondatabase/serverless`** HTTP driver.
 - **xAI Agent Tools API** (`/v1/responses` with `x_search` + `web_search`) — the Grok-powered backbone
 - **zustand** for client state with server-action writes (no localStorage)
 - **@dnd-kit** for sortable decks + columns
@@ -37,22 +40,42 @@ Columns are pure plugins. A `ColumnType` is a config form + item renderer + fetc
 
 ## Setup
 
+The fastest path needs nothing but Node — no Docker, no Postgres install, no
+hosted DB account. The default Drizzle client is PGlite (real Postgres
+compiled to WASM, persisted at `.minitor/pgdata/`).
+
 ```bash
 # 1. Install
 npm install
 
-# 2. Env
+# 2. Optional — only if you want non-keyless columns (Grok / X / News /
+# Farcaster / YouTube search). Skip this for purely-keyless dev (Reddit,
+# HN, RSS, Google News, NewsNow, GitHub, YouTube channel/playlist).
 cp .env.example .env.local
-# Fill in DATABASE_URL (Neon) and XAI_API_KEY (xAI)
+# Fill in XAI_API_KEY etc. Leave DATABASE_URL commented out for local PGlite.
 
-# 3. Create the schema on Neon
-npm run db:migrate     # applies drizzle/0000_*.sql via the Neon HTTP driver
+# 3. Create the schema
+npm run db:migrate     # PGlite by default; honors DATABASE_URL when set
 
 # 4. Dev
 npm run dev
 ```
 
-Then open http://localhost:3000. First run drops you into an onboarding screen — name the first deck, pick 2–3 column types to seed.
+Then open http://localhost:3000. First run drops you into an onboarding
+screen — name the first deck, pick 2–3 column types to seed.
+
+### Pointing at a different database
+
+Set `DATABASE_URL` in `.env.local`:
+
+| URL form | Driver picked |
+|---|---|
+| *unset* / `pglite:` / `file:` / `memory:` | PGlite (file at `.minitor/pgdata/`) |
+| `postgres://user:pass@localhost/minitor` | node-postgres |
+| `postgresql://…@…neon.tech/…?sslmode=require` | `@neondatabase/serverless` HTTP |
+
+`npm run db:migrate` and the runtime client both honor the same selector
+(`lib/db/client.ts:resolveDatabaseConfig`).
 
 ## Scripts
 
