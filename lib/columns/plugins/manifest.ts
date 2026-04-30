@@ -22,6 +22,7 @@ import { meta as mentions } from "./mentions/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as youtube } from "./youtube/plugin";
 import { meta as newsnow } from "./newsnow/plugin";
+import { meta as weiboSearch } from "./weibo-search/plugin";
 
 export const PLUGIN_METAS = [
   grokAsk,
@@ -42,6 +43,7 @@ export const PLUGIN_METAS = [
   farcaster,
   youtube,
   newsnow,
+  weiboSearch,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
