@@ -101,7 +101,7 @@ function ItemRenderer({ item }: ItemRendererProps<RedditMeta>) {
         {item.content}
       </h3>
       <div className="mt-2 flex items-center gap-4 text-[11.5px] text-muted-foreground">
-        <span className="flex items-center gap-1 transition-colors group-hover/item:text-[color:var(--brand)]">
+        <span className="flex items-center gap-1 transition-colors group-hover/item:text-foreground">
           <ArrowBigUp className="size-4" />
           <span className="tabular-nums">{compact(score)}</span>
         </span>

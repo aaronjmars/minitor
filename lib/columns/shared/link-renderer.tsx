@@ -45,7 +45,7 @@ export function LinkItem({
         </span>
       </div>
       <h3
-        className="mt-1 font-serif text-[17px] leading-[1.3] text-foreground break-words"
+        className="mt-1 font-serif text-[16px] leading-[1.3] text-foreground break-words transition-colors group-hover/item:text-[color:var(--brand-hover)]"
         style={{ letterSpacing: "-0.005em", fontFeatureSettings: '"cswh" 1' }}
       >
         {title}

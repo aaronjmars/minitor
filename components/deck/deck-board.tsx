@@ -71,8 +71,8 @@ export function DeckBoard({ deckId }: { deckId: string }) {
   }
 
   return (
-    <div ref={scrollerRef} className="flex-1 overflow-x-auto overflow-y-hidden">
-      <div className="flex h-full gap-3 p-3">
+    <div ref={scrollerRef} className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory sm:snap-none">
+      <div className="flex h-full gap-2 p-2 sm:gap-3 sm:p-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -94,7 +94,7 @@ export function DeckBoard({ deckId }: { deckId: string }) {
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="group relative flex h-full w-[280px] shrink-0 flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed border-border bg-transparent text-sm text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:bg-surface/40 hover:text-foreground hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.18)] active:translate-y-0"
+          className="group relative flex h-full w-[min(280px,calc(100vw-1rem))] shrink-0 snap-start flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed border-border bg-transparent text-sm text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:bg-surface/40 hover:text-foreground hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.18)] active:translate-y-0 sm:w-[280px] sm:snap-none"
         >
           <span
             aria-hidden

@@ -15,7 +15,7 @@ export interface RssMeta {
 
 export const meta: PluginMeta<RssConfig, RssMeta> = {
   id: "rss",
-  label: "RSS · Atom",
+  label: "RSS",
   description: "Any RSS or Atom feed — blogs, Substacks, RSSHub, alerts.",
   icon: Rss,
   accent: "#dfa88f",
@@ -32,4 +32,5 @@ export const meta: PluginMeta<RssConfig, RssMeta> = {
       return "RSS";
     }
   },
+  capabilities: { paginated: true },
 };

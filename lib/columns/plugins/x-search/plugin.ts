@@ -14,12 +14,13 @@ export type XSearchConfig = z.infer<typeof schema>;
 export const meta: PluginMeta<XSearchConfig, TweetMeta> = {
   id: "x-search",
   label: "X · Search",
-  description: "Monitor X posts matching a keyword, hashtag, or query operator.",
+  description:
+    "Monitor X. Use from:handle for a user's posts, to:handle or @handle for mentions, plus keywords, hashtags, and operators (min_faves:, lang:, since:).",
   icon: Search,
   accent: "#1d9bf0",
   category: "social",
   schema,
   defaultConfig: schema.parse({}),
   defaultTitle: (c) => (c.query.trim() ? `X · ${c.query.trim()}` : "X · Search"),
-  capabilities: { requiresEnv: ["XAI_API_KEY"] },
+  capabilities: { paginated: true, requiresEnv: ["XAI_API_KEY"] },
 };

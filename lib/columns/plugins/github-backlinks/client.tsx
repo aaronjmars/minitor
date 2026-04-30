@@ -21,7 +21,6 @@ const SOURCE_LABEL: Record<BacklinkSource, string> = {
   "google-news": "Google",
   "bing-news": "Bing",
   github: "GitHub",
-  web: "Web",
 };
 
 const SOURCE_BG: Record<BacklinkSource, string> = {
@@ -30,7 +29,6 @@ const SOURCE_BG: Record<BacklinkSource, string> = {
   "google-news": "rgba(159, 201, 162, 0.32)",
   "bing-news": "rgba(159, 187, 224, 0.32)",
   github: "rgba(38, 37, 30, 0.16)",
-  web: "rgba(192, 168, 221, 0.32)",
 };
 
 function ConfigForm({ value, onChange }: ConfigFormProps<BacklinksConfig>) {
@@ -65,31 +63,16 @@ function ConfigForm({ value, onChange }: ConfigFormProps<BacklinksConfig>) {
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-3.5 accent-foreground"
-          checked={value.includeWebSearch}
-          onChange={(e) =>
-            onChange({ ...value, includeWebSearch: e.target.checked })
-          }
-        />
-        <span>
-          <span className="font-medium">Include web search</span>
-          <span className="block text-xs text-muted-foreground">
-            Catches blog posts, Substack, etc. via Grok. Requires{" "}
-            <code>XAI_API_KEY</code>.
-          </span>
-        </span>
-      </label>
     </div>
   );
 }
 
 function ItemRenderer({ item }: ItemRendererProps<BacklinksItemMeta>) {
-  const source = item.meta?.source ?? "web";
-  const sourceLabel = SOURCE_LABEL[source] ?? source;
-  const bg = SOURCE_BG[source] ?? "rgba(0,0,0,0.06)";
+  const source = item.meta?.source;
+  const sourceLabel =
+    (source && SOURCE_LABEL[source as BacklinkSource]) ?? source ?? "Web";
+  const bg =
+    (source && SOURCE_BG[source as BacklinkSource]) ?? "rgba(0,0,0,0.06)";
 
   const [title, ...rest] = item.content.split("\n\n");
   const snippet = rest.join("\n\n").trim();

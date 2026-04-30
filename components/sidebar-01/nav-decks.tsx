@@ -184,16 +184,22 @@ export function NavDecks() {
                 >
                   <MoreHorizontal className="size-3.5" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start">
+                <DropdownMenuContent
+                  side="right"
+                  align="start"
+                  className="w-40"
+                >
                   <DropdownMenuItem onClick={() => setRenameDeckId(deckId)}>
-                    <Pencil className="mr-2 size-4" /> Rename deck
+                    <Pencil className="mr-2 size-4" />
+                    <span className="whitespace-nowrap">Rename deck</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => setDeleteDeckId(deckId)}
                   >
-                    <Trash2 className="mr-2 size-4" /> Delete deck
+                    <Trash2 className="mr-2 size-4" />
+                    <span className="whitespace-nowrap">Delete deck</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -234,7 +240,7 @@ export function NavDecks() {
         open={deleteDeckId !== null}
         onOpenChange={(o) => !o && setDeleteDeckId(null)}
         title={`Delete ${deleteDeckId ? decks[deleteDeckId]?.name : "deck"}?`}
-        description="All columns in this deck and their stored items will be removed from Neon. This can't be undone."
+        description="All columns in this deck and their stored items will be deleted. This can't be undone."
         confirmLabel="Delete deck"
         onConfirm={() => {
           if (deleteDeckId) deleteDeck(deleteDeckId);
@@ -245,7 +251,7 @@ export function NavDecks() {
         open={deleteColumnId !== null}
         onOpenChange={(o) => !o && setDeleteColumnId(null)}
         title={`Delete ${deleteColumnId ? columns[deleteColumnId]?.title : "column"}?`}
-        description="Stored items for this column will be removed from Neon. The column type is not affected."
+        description="Stored items for this column will be deleted. The column type is not affected."
         confirmLabel="Delete column"
         onConfirm={() => {
           if (deleteColumnId) removeColumn(deleteColumnId);

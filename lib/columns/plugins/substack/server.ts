@@ -11,18 +11,37 @@ import {
 } from "@/lib/columns/types";
 import {
   parseHandles,
+  searchSubstackByKeyword,
   searchSubstackPublications,
 } from "@/lib/integrations/substack";
+import { sliceForPage } from "@/lib/columns/paginate";
 import { meta, type SubstackConfig, type SubstackMeta } from "./plugin";
 
-const fetch: ServerFetcher<SubstackConfig, SubstackMeta> = async (config) => {
+const fetch: ServerFetcher<SubstackConfig, SubstackMeta> = async (
+  config,
+  cursor,
+) => {
   const handles = parseHandles(config.handles);
-  if (handles.length === 0) return { items: [] };
+  const query = config.query.trim();
+
+  // Keyword-only mode: no publications, fall back to xAI Grok web_search
+  // filtered to site:substack.com.
+  if (handles.length === 0) {
+    if (!query) return { items: [] };
+    const items = (await searchSubstackByKeyword(
+      query,
+      50,
+    )) as FeedItem<SubstackMeta>[];
+    return sliceForPage(items, cursor);
+  }
+
   const items = (await searchSubstackPublications(
     handles,
     config.query,
+    20,
+    100,
   )) as FeedItem<SubstackMeta>[];
-  return { items };
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<SubstackConfig, SubstackMeta>({

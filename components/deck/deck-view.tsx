@@ -36,7 +36,7 @@ export function DeckView() {
       .catch((err) => {
         const msg = err instanceof Error ? err.message : "Unknown error";
         setLoadError(msg);
-        toast.error("Could not load data from Neon", { description: msg });
+        toast.error("Could not load data", { description: msg });
       });
     return () => {
       cancelled = true;
@@ -54,15 +54,15 @@ export function DeckView() {
   if (!hydrated) {
     return (
       <div className="flex h-dvh">
-        <Skeleton className="h-full w-64" />
-        <div className="flex flex-1 gap-3 p-3">
-          <Skeleton className="h-full w-[360px] rounded-lg" />
-          <Skeleton className="h-full w-[360px] rounded-lg" />
-          <Skeleton className="h-full w-[360px] rounded-lg" />
+        <Skeleton className="hidden h-full w-64 md:block" />
+        <div className="flex flex-1 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3">
+          <Skeleton className="h-full w-[min(360px,calc(100vw-1rem))] shrink-0 rounded-lg sm:w-[360px]" />
+          <Skeleton className="hidden h-full w-[360px] shrink-0 rounded-lg md:block" />
+          <Skeleton className="hidden h-full w-[360px] shrink-0 rounded-lg md:block" />
         </div>
         {loadError && (
           <div className="absolute inset-x-0 bottom-0 px-4 py-3 text-xs text-destructive">
-            Failed to load from Neon: {loadError}
+            Failed to load: {loadError}
           </div>
         )}
       </div>
@@ -77,12 +77,12 @@ export function DeckView() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-background">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md">
-          <SidebarTrigger className="size-8" />
-          <div className="h-5 w-px bg-border" />
-          <div className="flex min-w-0 items-center gap-3.5">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-2 backdrop-blur-md sm:px-3">
+          <SidebarTrigger className="size-8 shrink-0" />
+          <div className="h-5 w-px shrink-0 bg-border" />
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3.5">
             <span
-              className="pb-1 font-serif text-[20px] leading-[1.2] italic text-foreground"
+              className="pb-1 font-serif text-[18px] leading-[1.2] italic text-foreground sm:text-[20px]"
               style={{ letterSpacing: "-0.01em" }}
             >
               {activeDeck?.name ?? "Minitor"}

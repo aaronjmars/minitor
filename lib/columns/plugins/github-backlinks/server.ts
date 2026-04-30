@@ -6,6 +6,7 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { fetchBacklinks } from "@/lib/integrations/github-backlinks";
+import { sliceForPage } from "@/lib/columns/paginate";
 import {
   meta,
   type BacklinksConfig,
@@ -13,16 +14,17 @@ import {
 } from "./plugin";
 
 // Fan-out across HN (URL-indexed), Reddit search, Google News, Bing News,
-// optionally GitHub issue search and Grok web search; dedup on canonical URL.
+// optionally GitHub issue search; dedup on canonical URL.
 const fetch: ServerFetcher<BacklinksConfig, BacklinksItemMeta> = async (
   config,
+  cursor,
 ) => {
   const items = (await fetchBacklinks({
     repo: config.repo,
     includeIssues: config.includeIssues,
-    includeWebSearch: config.includeWebSearch,
+    limitPerSource: 12,
   })) as FeedItem<BacklinksItemMeta>[];
-  return { items };
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<BacklinksConfig, BacklinksItemMeta>({

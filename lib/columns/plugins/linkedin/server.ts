@@ -1,8 +1,8 @@
 import "server-only";
 
 // Approach: xAI Grok web_search with a site:linkedin.com/posts filter — the
-// official LinkedIn API is closed for public search, so we mirror the web-search
-// plugin's pattern via lib/integrations/linkedin.ts.
+// official LinkedIn API is closed for public search.
+// See lib/integrations/linkedin.ts.
 
 import {
   defineColumnServer,
@@ -10,11 +10,18 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { searchLinkedinPosts } from "@/lib/integrations/linkedin";
+import { sliceForPage } from "@/lib/columns/paginate";
 import { meta, type LinkedinConfig, type LinkedinMeta } from "./plugin";
 
-const fetch: ServerFetcher<LinkedinConfig, LinkedinMeta> = async (config) => {
-  const items = (await searchLinkedinPosts(config.query)) as FeedItem<LinkedinMeta>[];
-  return { items };
+const fetch: ServerFetcher<LinkedinConfig, LinkedinMeta> = async (
+  config,
+  cursor,
+) => {
+  const items = (await searchLinkedinPosts(
+    config.query,
+    30,
+  )) as FeedItem<LinkedinMeta>[];
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<LinkedinConfig, LinkedinMeta>({

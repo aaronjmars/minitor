@@ -22,6 +22,20 @@ type ItemRow = {
   meta: Record<string, unknown> | null;
 };
 
+// Returns whether each env var is set on the server, without ever leaking
+// the values themselves. Used by the AddColumn dialog to grey out / filter
+// plugins whose required keys aren't configured.
+export async function getKeyAvailability(
+  keys: string[],
+): Promise<Record<string, boolean>> {
+  const out: Record<string, boolean> = {};
+  for (const k of keys) {
+    if (!/^[A-Z][A-Z0-9_]*$/.test(k)) continue;
+    out[k] = Boolean(process.env[k]);
+  }
+  return out;
+}
+
 export async function loadSnapshot(): Promise<Snapshot> {
   // Page items at the DB instead of slicing in memory: window-function with
   // row_number() returns at most MAX_ITEMS_PER_COLUMN per column, ordered

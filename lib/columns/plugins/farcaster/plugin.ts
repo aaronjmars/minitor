@@ -3,8 +3,6 @@ import { Hash } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
 
 export const schema = z.object({
-  mode: z.enum(["user", "search"]).default("user"),
-  username: z.string().default(""),
   query: z.string().default(""),
 });
 
@@ -25,19 +23,17 @@ export interface FCMeta {
 export const meta: PluginMeta<FCConfig, FCMeta> = {
   id: "farcaster",
   label: "Farcaster",
-  description: "Casts by a user, or search across Farcaster (via Neynar).",
+  description: "Search Farcaster casts. Use @handle or from:handle for a user's latest posts.",
   icon: Hash,
   accent: "#7c65c1",
   category: "social",
   schema,
   defaultConfig: schema.parse({}),
   defaultTitle: (c) => {
-    if (c.mode === "search") {
-      const q = c.query.trim();
-      return q ? `Farcaster · ${q}` : "Farcaster · Search";
-    }
-    const u = c.username.trim().replace(/^@/, "");
-    return u ? `Farcaster · @${u}` : "Farcaster · User";
+    const q = c.query.trim();
+    return q ? `Farcaster · ${q}` : "Farcaster · Search";
   },
-  capabilities: { requiresEnv: ["NEYNAR_API_KEY"] },
+  // No strict env requirement — falls back to Neynar's public NEYNAR_API_DOCS
+  // demo key when NEYNAR_API_KEY is unset (rate-limited but functional).
+  capabilities: { paginated: true },
 };

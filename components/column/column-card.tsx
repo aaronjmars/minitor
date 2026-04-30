@@ -62,7 +62,7 @@ export function ColumnCard({ column }: { column: Column }) {
 
   if (!type) {
     return (
-      <div className="flex w-[360px] shrink-0 flex-col rounded-lg border border-destructive/50 bg-card p-4 text-sm">
+      <div className="flex w-[min(360px,calc(100vw-1rem))] shrink-0 snap-start flex-col rounded-lg border border-destructive/50 bg-card p-4 text-sm sm:w-[360px] sm:snap-none">
         <p className="font-medium">Unknown column type</p>
         <p className="mt-1 text-muted-foreground">
           Type <code>{column.typeId}</code> is not registered.
@@ -109,10 +109,24 @@ export function ColumnCard({ column }: { column: Column }) {
 
   async function onLoadMore() {
     if (!paginated) return;
-    if (typeof nextCursor !== "string") return;
     setIsLoadingMore(true);
     try {
-      const r = await callColumnApi(type.id, column.config, nextCursor);
+      // First load after a cold open: cached items came from the DB without
+      // a cursor. Discover the cursor via a refresh-style call — items are
+      // already cached so dedup hides the visual repaint — then fetch the
+      // next page in the same click.
+      let cursor: string | undefined =
+        typeof nextCursor === "string" ? nextCursor : undefined;
+      if (!cursor) {
+        const first = await callColumnApi(type.id, column.config);
+        await applyFetchedItems(column.id, first.items);
+        cursor = first.nextCursor ?? undefined;
+        if (!cursor) {
+          setNextCursor(null);
+          return;
+        }
+      }
+      const r = await callColumnApi(type.id, column.config, cursor);
       await applyFetchedItems(column.id, r.items);
       setNextCursor(r.nextCursor ?? null);
     } catch (err) {
@@ -130,8 +144,7 @@ export function ColumnCard({ column }: { column: Column }) {
     zIndex: isDragging ? 50 : undefined,
   };
 
-  const isGrokAsk = column.typeId === "grok-ask";
-  const beamActive = isGrokAsk || isFetching || isAutoFetching;
+  const beamActive = isFetching || isAutoFetching;
 
   return (
     <>
@@ -142,12 +155,12 @@ export function ColumnCard({ column }: { column: Column }) {
           ...style,
           // consumed by the beam-frame CSS
           ["--beam-radius" as never]: "10px",
-          ["--beam-duration" as never]: isGrokAsk ? "4s" : "2s",
+          ["--beam-duration" as never]: "2s",
         }}
         data-beam-active={beamActive ? "true" : "false"}
-        data-beam-variant={isGrokAsk ? "grok" : "fetch"}
+        data-beam-variant="fetch"
         className={cn(
-          "beam-frame relative h-full w-[360px] shrink-0 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-shadow hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
+          "beam-frame relative h-full w-[min(360px,calc(100vw-1rem))] shrink-0 snap-start shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-shadow sm:w-[360px] sm:snap-none hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
           isDragging &&
             "cursor-grabbing shadow-[0_24px_60px_-20px_rgba(0,0,0,0.32)] ring-1 ring-foreground/10",
         )}
@@ -250,7 +263,7 @@ export function ColumnCard({ column }: { column: Column }) {
               {column.items.map((item) => (
                 <ItemRenderer key={item.id} item={item} />
               ))}
-              {paginated && typeof nextCursor === "string" && (
+              {paginated && nextCursor !== null && (
                 <button
                   type="button"
                   onClick={onLoadMore}
@@ -294,7 +307,7 @@ export function ColumnCard({ column }: { column: Column }) {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title={`Delete ${column.title}?`}
-        description="Stored items for this column will be removed from Neon. The column type is not affected."
+        description="Stored items for this column will be deleted. The column type is not affected."
         confirmLabel="Delete column"
         onConfirm={() => removeColumn(column.id)}
       />
@@ -329,8 +342,12 @@ function EmptyState({
 
 function LoadingSkeleton() {
   return (
-    <div role="status" aria-label="Loading items" className="divide-y divide-border">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div
+      role="status"
+      aria-label="Loading items"
+      className="flex h-full flex-col divide-y divide-border"
+    >
+      {Array.from({ length: 10 }).map((_, i) => (
         <SkeletonRow key={i} delay={i * 120} />
       ))}
     </div>

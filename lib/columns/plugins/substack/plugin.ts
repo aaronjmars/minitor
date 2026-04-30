@@ -19,7 +19,7 @@ export const meta: PluginMeta<SubstackConfig, SubstackMeta> = {
   id: "substack",
   label: "Substack",
   description:
-    "Watch Substack publications for posts mentioning a keyword or URL.",
+    "Watch Substack — give specific publications, or search all of Substack by keyword.",
   icon: BookOpen,
   accent: "#ff6719",
   category: "news",
@@ -32,7 +32,8 @@ export const meta: PluginMeta<SubstackConfig, SubstackMeta> = {
     return first ? `Substack · ${first.trim()}` : "Substack";
   },
   capabilities: {
+    paginated: true,
     rateLimitHint:
-      "One RSS fetch per publication. Substack has no global search API; results are filtered in-memory across the handles you supply.",
+      "Per-publication RSS is keyless. Keyword-only search uses xAI Grok web_search (requires XAI_API_KEY).",
   },
 };

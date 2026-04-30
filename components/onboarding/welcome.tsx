@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,25 +22,16 @@ interface Suggestion {
 // A handful of opinionated starting columns.
 const SUGGESTIONS: Suggestion[] = [
   {
-    typeId: "grok-ask",
-    title: "Grok · AI daily brief",
-    config: {
-      prompt:
-        "Give me the most important AI / dev-tools news of the last 24 hours, with direct X and web citations.",
-    },
-    hint: "Grok answers this prompt each refresh",
-  },
-  {
     typeId: "x-trending",
     title: "X · Trending in AI",
     config: { topic: "AI" },
     hint: "Top posts on X from the last 24h",
   },
   {
-    typeId: "x-user",
+    typeId: "x-search",
     title: "X · @vercel",
-    config: { handle: "vercel" },
-    hint: "Vercel's latest posts",
+    config: { query: "from:vercel" },
+    hint: "Vercel's latest posts (uses from: operator)",
   },
   {
     typeId: "x-search",
@@ -52,6 +44,12 @@ const SUGGESTIONS: Suggestion[] = [
     title: "News · AI regulation",
     config: { query: "AI regulation" },
     hint: "Latest articles from major publications",
+  },
+  {
+    typeId: "google-news",
+    title: "Global news · AI",
+    config: { query: "AI", hl: "", gl: "" },
+    hint: "Google News across all languages/countries",
   },
   {
     typeId: "reddit",
@@ -105,14 +103,41 @@ export function Onboarding() {
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-background p-6">
       <div className="w-full max-w-xl">
-        <div className="mb-8 flex items-baseline gap-1">
-          <Activity className="size-4 translate-y-0.5" strokeWidth={2.25} />
-          <span
-            className="font-serif text-[28px] leading-none italic text-foreground"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            Minitor
-          </span>
+        <div className="mb-8 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="font-serif text-[28px] leading-none italic text-foreground"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              Minitor
+            </span>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={32}
+              height={32}
+              priority
+              className="size-8 shrink-0"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <span>by</span>
+            <a
+              href="https://x.com/aeonframework"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-sm transition-colors hover:text-foreground"
+            >
+              <Image
+                src="/aeon.jpg"
+                alt="aeon"
+                width={14}
+                height={14}
+                className="size-3.5 rounded-full ring-1 ring-black/10"
+              />
+              <span>aeon</span>
+            </a>
+          </div>
         </div>
 
         <h1

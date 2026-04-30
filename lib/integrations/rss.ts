@@ -203,10 +203,19 @@ export async function fetchFeed(url: string, limit = 12): Promise<FeedItem[]> {
 
 export function googleNewsUrl(
   query: string,
-  hl = "en-US",
-  gl = "US",
+  hl?: string,
+  gl?: string,
 ): string {
-  const ceid = `${gl}:${hl.split("-")[0]}`;
-  const params = new URLSearchParams({ q: query.trim(), hl, gl, ceid });
+  const params = new URLSearchParams({ q: query.trim() });
+  // Region/language are optional. When unset, Google News returns its
+  // global default (mixed languages, IP-region-detected) — closer to an
+  // "all languages / all countries" feed than any single hl/gl combo.
+  if (hl && hl.trim()) {
+    params.set("hl", hl);
+    if (gl && gl.trim()) {
+      params.set("gl", gl);
+      params.set("ceid", `${gl}:${hl.split("-")[0]}`);
+    }
+  }
   return `https://news.google.com/rss/search?${params}`;
 }

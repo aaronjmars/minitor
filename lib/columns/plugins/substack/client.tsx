@@ -15,7 +15,7 @@ function ConfigForm({ value, onChange }: ConfigFormProps<SubstackConfig>) {
   return (
     <div className="grid gap-3">
       <div className="grid gap-1.5">
-        <Label htmlFor="sub-handles">Publications</Label>
+        <Label htmlFor="sub-handles">Publications (optional)</Label>
         <Textarea
           id="sub-handles"
           placeholder={"mattyglesias\nslowboring\nstratechery.com"}
@@ -26,12 +26,12 @@ function ConfigForm({ value, onChange }: ConfigFormProps<SubstackConfig>) {
         <p className="text-xs text-muted-foreground">
           One per line, or comma-separated. Use the handle (
           <code>mattyglesias</code>) or full URL (
-          <code>slowboring.substack.com</code>). Substack has no global search,
-          so we fetch each publication&apos;s RSS and filter locally.
+          <code>slowboring.substack.com</code>). Per-publication RSS is keyless.
+          Leave empty to search all of Substack via xAI web search.
         </p>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="sub-q">Keyword or URL (optional)</Label>
+        <Label htmlFor="sub-q">Keyword or URL</Label>
         <Input
           id="sub-q"
           placeholder='"AI agents", anthropic.com, https://...'
@@ -39,8 +39,8 @@ function ConfigForm({ value, onChange }: ConfigFormProps<SubstackConfig>) {
           onChange={(e) => onChange({ ...value, query: e.target.value })}
         />
         <p className="text-xs text-muted-foreground">
-          Leave blank to see every recent post. URLs are matched against the
-          post link; everything else searches title and summary.
+          With publications: optional — leave blank for every recent post.
+          Without publications: required — drives a global Substack search.
         </p>
       </div>
     </div>

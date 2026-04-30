@@ -5,7 +5,6 @@ import type { PluginMeta } from "@/lib/columns/types";
 export const schema = z.object({
   repo: z.string().default(""),
   includeIssues: z.boolean().default(true),
-  includeWebSearch: z.boolean().default(false),
 });
 
 export type BacklinksConfig = z.infer<typeof schema>;
@@ -15,8 +14,7 @@ export type BacklinkSource =
   | "reddit"
   | "google-news"
   | "bing-news"
-  | "github"
-  | "web";
+  | "github";
 
 export interface BacklinksItemMeta {
   source: BacklinkSource;
@@ -37,4 +35,5 @@ export const meta: PluginMeta<BacklinksConfig, BacklinksItemMeta> = {
     const t = c.repo.trim();
     return t ? `Backlinks · ${t.replace(/^https?:\/\/github\.com\//i, "")}` : "GitHub backlinks";
   },
+  capabilities: { paginated: true },
 };

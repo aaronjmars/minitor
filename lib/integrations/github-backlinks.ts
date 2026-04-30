@@ -3,20 +3,17 @@ import { fetchGitHub } from "@/lib/integrations/github";
 import { fetchHackerNews } from "@/lib/integrations/hackernews";
 import { searchReddit } from "@/lib/integrations/reddit";
 import { fetchFeed, googleNewsUrl } from "@/lib/integrations/rss";
-import { grokWebSearch } from "@/lib/integrations/xai";
 
 export type BacklinkSource =
   | "hn"
   | "reddit"
   | "google-news"
   | "bing-news"
-  | "github"
-  | "web";
+  | "github";
 
 export interface BacklinksConfig {
   repo: string;
   includeIssues?: boolean;
-  includeWebSearch?: boolean;
   limitPerSource?: number;
 }
 
@@ -130,15 +127,6 @@ export async function fetchBacklinks(
     tasks.push(
       fetchGitHub("issues", { query: ghQuery }, limit).then((items) =>
         tag(items, "github", canonicalUrl),
-      ),
-    );
-  }
-
-  // Optional Grok web search — only when XAI_API_KEY is set and user opts in.
-  if (config.includeWebSearch) {
-    tasks.push(
-      grokWebSearch(`pages linking to "${canonicalUrl}"`, limit).then(
-        (items) => tag(items, "web", canonicalUrl),
       ),
     );
   }

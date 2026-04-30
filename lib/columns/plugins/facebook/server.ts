@@ -10,11 +10,18 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { grokFacebookSearch } from "@/lib/integrations/xai";
+import { sliceForPage } from "@/lib/columns/paginate";
 import { meta, type FacebookConfig, type FacebookMeta } from "./plugin";
 
-const fetch: ServerFetcher<FacebookConfig, FacebookMeta> = async (config) => {
-  const items = (await grokFacebookSearch(config.query)) as FeedItem<FacebookMeta>[];
-  return { items };
+const fetch: ServerFetcher<FacebookConfig, FacebookMeta> = async (
+  config,
+  cursor,
+) => {
+  const items = (await grokFacebookSearch(
+    config.query,
+    30,
+  )) as FeedItem<FacebookMeta>[];
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<FacebookConfig, FacebookMeta>({

@@ -1,13 +1,6 @@
 "use client";
 
 import { Heart, MessageCircle, Repeat2, BadgeCheck } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RelativeTime } from "@/components/relative-time";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -28,55 +21,30 @@ function compact(n: number): string {
 
 function ConfigForm({ value, onChange }: ConfigFormProps<FCConfig>) {
   return (
-    <div className="grid gap-3">
-      <div className="grid gap-1.5">
-        <Label>Mode</Label>
-        <Select
-          value={value.mode}
-          onValueChange={(v) =>
-            onChange({ ...value, mode: v as FCConfig["mode"] })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="user">User</SelectItem>
-            <SelectItem value="search">Search</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="grid gap-1.5">
+      <Label htmlFor="fc-q">Query</Label>
+      <Input
+        id="fc-q"
+        placeholder="@dwr, from:vitalik, claude code, base…"
+        value={value.query}
+        onChange={(e) => onChange({ query: e.target.value })}
+      />
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>How to use:</p>
+        <ul className="list-disc space-y-0.5 pl-4">
+          <li>
+            <code>@dwr</code> or <code>from:dwr</code> — that user&apos;s
+            latest casts
+          </li>
+          <li>
+            <code>claude code</code> — keyword search across Farcaster
+          </li>
+        </ul>
+        <p>
+          Falls back to Neynar&apos;s public demo key when no{" "}
+          <code>NEYNAR_API_KEY</code> is set.
+        </p>
       </div>
-      {value.mode === "user" && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="fc-user">Username or FID</Label>
-          <Input
-            id="fc-user"
-            placeholder="dwr or 3"
-            value={value.username}
-            onChange={(e) => onChange({ ...value, username: e.target.value })}
-          />
-          <p className="text-xs text-muted-foreground">
-            Latest casts from a Farcaster user (via Neynar). Use the{" "}
-            <code>username</code> without the <code>@</code> prefix, or the
-            numeric <code>fid</code>.
-          </p>
-        </div>
-      )}
-      {value.mode === "search" && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="fc-q">Query</Label>
-          <Input
-            id="fc-q"
-            placeholder="claude, base, agents..."
-            value={value.query}
-            onChange={(e) => onChange({ ...value, query: e.target.value })}
-          />
-          <p className="text-xs text-muted-foreground">
-            Search Farcaster casts. Falls back to Neynar&apos;s public demo
-            key when your free tier returns 402.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -104,7 +72,7 @@ function ItemRenderer({ item }: ItemRendererProps<FCMeta>) {
           <AvatarFallback>{display.slice(0, 1).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[12px] leading-tight">
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] leading-tight">
             <span className="truncate font-medium text-foreground">
               {display}
             </span>
@@ -130,7 +98,7 @@ function ItemRenderer({ item }: ItemRendererProps<FCMeta>) {
             </span>
           </div>
           <p
-            className="mt-1 font-serif text-[15px] leading-[1.35] text-foreground break-words whitespace-pre-line"
+            className="mt-1 font-serif text-[16px] leading-[1.4] text-foreground break-words whitespace-pre-line"
             style={{ letterSpacing: "-0.005em", fontFeatureSettings: '"cswh" 1' }}
           >
             {item.content}

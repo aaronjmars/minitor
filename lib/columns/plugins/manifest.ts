@@ -4,70 +4,68 @@
 // "use client" boundary. Both registries (client UI + server fetchers) take
 // their canonical id list from here.
 
-import { meta as grokAsk } from "./grok-ask/plugin";
 import { meta as xSearch } from "./x-search/plugin";
-import { meta as xUser } from "./x-user/plugin";
-import { meta as xMentions } from "./x-mentions/plugin";
 import { meta as xTrending } from "./x-trending/plugin";
-import { meta as webSearch } from "./web-search/plugin";
 import { meta as newsSearch } from "./news-search/plugin";
 import { meta as reddit } from "./reddit/plugin";
 import { meta as hackerNews } from "./hacker-news/plugin";
-import { meta as github } from "./github/plugin";
+import { meta as githubTrending } from "./github-trending/plugin";
+import { meta as githubIssues } from "./github-issues/plugin";
 import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
-import { meta as mentions } from "./mentions/plugin";
+import { meta as bing } from "./bing/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as youtube } from "./youtube/plugin";
-import { meta as newsnow } from "./newsnow/plugin";
+import { meta as weiboHot } from "./weibo-hot/plugin";
+import { meta as zhihuHot } from "./zhihu-hot/plugin";
+import { meta as douyinHot } from "./douyin-hot/plugin";
+import { meta as bilibiliHot } from "./bilibili-hot/plugin";
+import { meta as toutiao } from "./toutiao/plugin";
+import { meta as baiduHot } from "./baidu-hot/plugin";
 import { meta as instagram } from "./instagram/plugin";
-import { meta as rednote } from "./rednote/plugin";
-import { meta as hackerNewsSearch } from "./hacker-news-search/plugin";
 import { meta as githubSearch } from "./github-search/plugin";
-import { meta as tiktok } from "./tiktok/plugin";
-import { meta as weiboSearch } from "./weibo-search/plugin";
 import { meta as substack } from "./substack/plugin";
 import { meta as linkedin } from "./linkedin/plugin";
 import { meta as facebook } from "./facebook/plugin";
 import { meta as githubBacklinks } from "./github-backlinks/plugin";
 import { meta as walletTx } from "./wallet-tx/plugin";
 import { meta as githubPrs } from "./github-prs/plugin";
-import { meta as telegramSearch } from "./telegram-search/plugin";
-import { meta as appReviews } from "./app-reviews/plugin";
-import { meta as githubWatchers } from "./github-watchers/plugin";
+import { meta as appleReviews } from "./apple-reviews/plugin";
+import { meta as playReviews } from "./play-reviews/plugin";
+import { meta as githubStars } from "./github-stars/plugin";
+import { meta as githubForks } from "./github-forks/plugin";
 
 export const PLUGIN_METAS = [
-  grokAsk,
   xSearch,
-  xUser,
-  xMentions,
   xTrending,
-  webSearch,
   newsSearch,
   reddit,
   hackerNews,
-  github,
+  githubTrending,
+  githubIssues,
   rss,
   googleNews,
-  mentions,
+  bing,
   farcaster,
   youtube,
-  newsnow,
+  weiboHot,
+  zhihuHot,
+  douyinHot,
+  bilibiliHot,
+  toutiao,
+  baiduHot,
   instagram,
-  rednote,
-  hackerNewsSearch,
   githubSearch,
-  tiktok,
-  weiboSearch,
   substack,
   linkedin,
   facebook,
   githubBacklinks,
   walletTx,
   githubPrs,
-  telegramSearch,
-  appReviews,
-  githubWatchers,
+  appleReviews,
+  playReviews,
+  githubStars,
+  githubForks,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(

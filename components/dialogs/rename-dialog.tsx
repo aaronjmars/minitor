@@ -47,30 +47,39 @@ export function RenameDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label htmlFor="rename-input">Name</Label>
-          <Input
-            id="rename-input"
-            value={value}
-            placeholder={placeholder}
-            autoFocus
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-            }}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={commit} disabled={!value.trim()}>
-            Save
-          </Button>
-        </DialogFooter>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            commit();
+          }}
+          className="contents"
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-1.5">
+            <Label htmlFor="rename-input">Name</Label>
+            <Input
+              id="rename-input"
+              value={value}
+              placeholder={placeholder}
+              autoFocus
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!value.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

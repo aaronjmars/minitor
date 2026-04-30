@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+#
+# ./minitor — one-command launcher.
+#
+#   ./minitor             start the dev server (default)
+#   ./minitor build       production build
+#   ./minitor start       production server (after build)
+#   ./minitor migrate     run DB migrations only
+#   ./minitor doctor      print environment diagnostics
+#   ./minitor reset       wipe the local PGlite data dir
+#
+# Bootstraps node_modules, .env.local, and the local PGlite database the first
+# time it runs. Re-running with no args just starts the dev server.
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+# ---- pretty output --------------------------------------------------------
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  C_DIM=$'\033[2m'; C_BOLD=$'\033[1m'; C_GREEN=$'\033[32m'
+  C_YELLOW=$'\033[33m'; C_RED=$'\033[31m'; C_RESET=$'\033[0m'
+else
+  C_DIM=""; C_BOLD=""; C_GREEN=""; C_YELLOW=""; C_RED=""; C_RESET=""
+fi
+
+step() { printf "%s▸%s %s\n" "$C_BOLD" "$C_RESET" "$1"; }
+ok()   { printf "  %s✓%s %s\n" "$C_GREEN" "$C_RESET" "$1"; }
+warn() { printf "  %s!%s %s\n" "$C_YELLOW" "$C_RESET" "$1" >&2; }
+die()  { printf "  %s✗%s %s\n" "$C_RED" "$C_RESET" "$1" >&2; exit 1; }
+muted(){ printf "  %s%s%s\n" "$C_DIM" "$1" "$C_RESET"; }
+
+# ---- requirements ---------------------------------------------------------
+require_node() {
+  if ! command -v node >/dev/null 2>&1; then
+    die "Node.js is not installed. Install Node 20+ from https://nodejs.org"
+  fi
+  local major
+  major=$(node -p "process.versions.node.split('.')[0]")
+  if [ "$major" -lt 20 ]; then
+    die "Node $major detected — Minitor needs Node 20 or newer."
+  fi
+  ok "node $(node -v)"
+}
+
+# ---- pick a package manager ----------------------------------------------
+PKG=""
+pick_pkg_manager() {
+  if [ -f pnpm-lock.yaml ] && command -v pnpm >/dev/null 2>&1; then
+    PKG="pnpm"
+  elif [ -f yarn.lock ] && command -v yarn >/dev/null 2>&1; then
+    PKG="yarn"
+  elif [ -f bun.lockb ] && command -v bun >/dev/null 2>&1; then
+    PKG="bun"
+  else
+    PKG="npm"
+  fi
+  ok "package manager: $PKG"
+}
+
+pkg_install() {
+  case "$PKG" in
+    pnpm) pnpm install ;;
+    yarn) yarn install ;;
+    bun)  bun install ;;
+    *)    npm install ;;
+  esac
+}
+
+pkg_run() {
+  case "$PKG" in
+    pnpm) pnpm "$@" ;;
+    yarn) yarn "$@" ;;
+    bun)  bun run "$@" ;;
+    *)    npm run "$@" ;;
+  esac
+}
+
+pkg_exec() {
+  case "$PKG" in
+    pnpm) pnpm exec "$@" ;;
+    yarn) yarn "$@" ;;
+    bun)  bunx "$@" ;;
+    *)    npx --no-install "$@" || npx "$@" ;;
+  esac
+}
+
+# ---- bootstrap steps ------------------------------------------------------
+ensure_deps() {
+  if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock.json ] && [ ! -d node_modules/.pnpm ]; then
+    step "Installing dependencies"
+    pkg_install
+  else
+    if [ package.json -nt node_modules ] || [ package-lock.json -nt node_modules 2>/dev/null ]; then
+      step "Lockfile changed — reinstalling"
+      pkg_install
+    else
+      ok "dependencies already installed"
+    fi
+  fi
+}
+
+ensure_env() {
+  if [ ! -f .env.local ]; then
+    step "Creating .env.local"
+    if [ -f .env.example ]; then
+      cp .env.example .env.local
+      ok ".env.local created from .env.example"
+      warn "Set XAI_API_KEY in .env.local for X / News / Web / Grok columns."
+      muted "Other keys (Neynar, YouTube, GitHub) are optional — public fallbacks work."
+    else
+      : > .env.local
+      ok ".env.local created (empty)"
+    fi
+  else
+    ok ".env.local present"
+  fi
+}
+
+ensure_db() {
+  step "Running database migrations"
+  pkg_run db:migrate
+}
+
+# ---- subcommands ----------------------------------------------------------
+cmd_dev() {
+  require_node
+  pick_pkg_manager
+  ensure_deps
+  ensure_env
+  ensure_db
+  step "Starting dev server"
+  muted "http://localhost:3000  (Ctrl-C to stop)"
+  exec_dev
+}
+
+exec_dev() {
+  case "$PKG" in
+    pnpm) exec pnpm dev ;;
+    yarn) exec yarn dev ;;
+    bun)  exec bun run dev ;;
+    *)    exec npm run dev ;;
+  esac
+}
+
+cmd_build() {
+  require_node
+  pick_pkg_manager
+  ensure_deps
+  ensure_env
+  ensure_db
+  step "Building for production"
+  pkg_run build
+}
+
+cmd_start() {
+  require_node
+  pick_pkg_manager
+  ensure_deps
+  ensure_env
+  ensure_db
+  step "Starting production server"
+  case "$PKG" in
+    pnpm) exec pnpm start ;;
+    yarn) exec yarn start ;;
+    bun)  exec bun run start ;;
+    *)    exec npm run start ;;
+  esac
+}
+
+cmd_migrate() {
+  require_node
+  pick_pkg_manager
+  ensure_deps
+  ensure_env
+  ensure_db
+}
+
+cmd_doctor() {
+  step "Diagnostics"
+  printf "  os         %s\n" "$(uname -s) $(uname -r)"
+  if command -v node >/dev/null 2>&1; then
+    printf "  node       %s\n" "$(node -v)"
+  else
+    printf "  node       %snot installed%s\n" "$C_RED" "$C_RESET"
+  fi
+  pick_pkg_manager >/dev/null 2>&1 || true
+  printf "  pkg mgr    %s\n" "$PKG"
+  if [ -f .env.local ]; then
+    if grep -q '^XAI_API_KEY=xai-[^.]' .env.local 2>/dev/null; then
+      printf "  XAI_API_KEY %sset%s\n" "$C_GREEN" "$C_RESET"
+    else
+      printf "  XAI_API_KEY %smissing or placeholder%s\n" "$C_YELLOW" "$C_RESET"
+    fi
+  else
+    printf "  .env.local %smissing%s\n" "$C_YELLOW" "$C_RESET"
+  fi
+  if [ -d .minitor/pgdata ]; then
+    printf "  database   PGlite at .minitor/pgdata\n"
+  else
+    printf "  database   not initialized yet\n"
+  fi
+}
+
+cmd_reset() {
+  step "Resetting local PGlite database"
+  if [ -d .minitor/pgdata ]; then
+    rm -rf .minitor/pgdata
+    ok "Wiped .minitor/pgdata"
+  else
+    muted "Nothing to wipe."
+  fi
+}
+
+cmd_help() {
+  cat <<'USAGE'
+Minitor launcher
+
+Usage:
+  ./minitor              start the dev server (default)
+  ./minitor build        production build
+  ./minitor start        production server (after build)
+  ./minitor migrate      run DB migrations only
+  ./minitor doctor       print environment diagnostics
+  ./minitor reset        wipe the local PGlite data dir
+  ./minitor help         show this message
+USAGE
+}
+
+# ---- entry point ----------------------------------------------------------
+case "${1:-dev}" in
+  ""|dev|run|up|start-dev) cmd_dev ;;
+  build)                   cmd_build ;;
+  start|prod)              cmd_start ;;
+  migrate|db|db:migrate)   cmd_migrate ;;
+  doctor|status)           cmd_doctor ;;
+  reset|clean)             cmd_reset ;;
+  help|-h|--help)          cmd_help ;;
+  *) printf "Unknown command: %s\n\n" "$1" >&2; cmd_help; exit 2 ;;
+esac

@@ -27,6 +27,7 @@ export const meta: PluginMeta<InstagramConfig, InstagramMeta> = {
   defaultTitle: (c) =>
     c.query.trim() ? `Instagram · ${c.query.trim()}` : "Instagram",
   capabilities: {
+    paginated: true,
     requiresEnv: ["XAI_API_KEY"],
     rateLimitHint:
       "Indexed via web search — only public posts already crawled by search engines are returned.",

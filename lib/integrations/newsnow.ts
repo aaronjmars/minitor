@@ -10,25 +10,15 @@ export type NewsNowPlatform =
   | "douyin"
   | "bilibili-hot-search"
   | "toutiao"
-  | "baidu"
-  | "tieba"
-  | "wallstreetcn-hot"
-  | "cls-hot"
-  | "thepaper"
-  | "ifeng";
+  | "baidu";
 
 export const PLATFORM_LABELS: Record<NewsNowPlatform, string> = {
-  weibo: "微博热搜",
-  zhihu: "知乎热榜",
-  douyin: "抖音热榜",
-  "bilibili-hot-search": "B 站热搜",
-  toutiao: "今日头条",
-  baidu: "百度热搜",
-  tieba: "百度贴吧",
-  "wallstreetcn-hot": "华尔街见闻",
-  "cls-hot": "财联社",
-  thepaper: "澎湃新闻",
-  ifeng: "凤凰网",
+  weibo: "Weibo · Hot search",
+  zhihu: "Zhihu · Hot",
+  douyin: "Douyin · Hot",
+  "bilibili-hot-search": "Bilibili · Hot search",
+  toutiao: "Toutiao",
+  baidu: "Baidu · Hot search",
 };
 
 interface NewsNowItem {

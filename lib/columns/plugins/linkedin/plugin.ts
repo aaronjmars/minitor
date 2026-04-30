@@ -15,7 +15,7 @@ export interface LinkedinMeta {
 
 export const meta: PluginMeta<LinkedinConfig, LinkedinMeta> = {
   id: "linkedin",
-  label: "LinkedIn mentions",
+  label: "LinkedIn",
   description: "Watch LinkedIn posts mentioning a keyword or URL.",
   icon: Briefcase,
   accent: "#0a66c2",
@@ -23,6 +23,6 @@ export const meta: PluginMeta<LinkedinConfig, LinkedinMeta> = {
   schema,
   defaultConfig: schema.parse({}),
   defaultTitle: (c) =>
-    c.query.trim() ? `LinkedIn · ${c.query.trim()}` : "LinkedIn mentions",
-  capabilities: { requiresEnv: ["XAI_API_KEY"] },
+    c.query.trim() ? `LinkedIn · ${c.query.trim()}` : "LinkedIn",
+  capabilities: { paginated: true, requiresEnv: ["XAI_API_KEY"] },
 };

@@ -35,28 +35,24 @@ export function NavFooter() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex h-8 w-full items-center justify-end gap-2 rounded-md px-2 text-right text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
-                <Plus className="size-4" />
+              <DropdownMenuTrigger className="flex h-8 w-full items-center justify-between gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
                 <span>Add new</span>
+                <Plus className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="end" className="w-auto">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-right">
-                    Create
-                  </DropdownMenuLabel>
-                  <DropdownMenuItem
-                    className="justify-end"
-                    onClick={() => setNewDeckOpen(true)}
-                  >
-                    <Plus className="mr-2 size-4" /> New deck
+                  <DropdownMenuLabel>Create</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setNewDeckOpen(true)}>
+                    <span>New deck</span>
+                    <Plus className="ml-auto size-4" />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="justify-end"
                     onClick={() => setAddColOpen(true)}
                     disabled={!activeDeckId}
                   >
-                    <Plus className="mr-2 size-4" /> Add column
+                    <span>Add column</span>
+                    <Plus className="ml-auto size-4" />
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>

@@ -6,6 +6,7 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { fetchFeed, googleNewsUrl } from "@/lib/integrations/rss";
+import { sliceForPage } from "@/lib/columns/paginate";
 import {
   meta,
   type GoogleNewsConfig,
@@ -14,11 +15,13 @@ import {
 
 const fetch: ServerFetcher<GoogleNewsConfig, GoogleNewsMeta> = async (
   config,
+  cursor,
 ) => {
   const items = (await fetchFeed(
     googleNewsUrl(config.query, config.hl, config.gl),
+    50,
   )) as FeedItem<GoogleNewsMeta>[];
-  return { items };
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<GoogleNewsConfig, GoogleNewsMeta>({

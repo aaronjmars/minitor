@@ -2,8 +2,7 @@ import "server-only";
 
 // LinkedIn has no public search API and the official Marketing/REST API is
 // closed for this use case. We piggy-back on xAI Grok's web_search tool with a
-// site:linkedin.com/posts filter — same pattern as the web-search plugin, but
-// query-shaped and post-filtered to LinkedIn-only results.
+// site:linkedin.com/posts filter, post-filtered to LinkedIn-only results.
 
 import type { FeedItem } from "@/lib/columns/types";
 import { grokWebSearch } from "@/lib/integrations/xai";

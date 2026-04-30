@@ -6,11 +6,18 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { grokNewsSearch } from "@/lib/integrations/xai";
+import { sliceForPage } from "@/lib/columns/paginate";
 import { meta, type NewsSearchConfig, type NewsSearchMeta } from "./plugin";
 
-const fetch: ServerFetcher<NewsSearchConfig, NewsSearchMeta> = async (config) => {
-  const items = (await grokNewsSearch(config.query)) as FeedItem<NewsSearchMeta>[];
-  return { items };
+const fetch: ServerFetcher<NewsSearchConfig, NewsSearchMeta> = async (
+  config,
+  cursor,
+) => {
+  const items = (await grokNewsSearch(
+    config.query,
+    30,
+  )) as FeedItem<NewsSearchMeta>[];
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<NewsSearchConfig, NewsSearchMeta>({

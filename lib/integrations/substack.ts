@@ -5,9 +5,13 @@ import "server-only";
 // is stable and zero-dep — every Substack newsletter exposes <handle>.substack.com/feed.
 // We fetch one feed per handle in parallel, optionally filter items by a
 // keyword or URL, and merge them newest-first.
+//
+// When the user gives a query but no publications, fall back to xAI Grok
+// web_search with a site:substack.com filter — same pattern as LinkedIn.
 
 import type { FeedItem } from "@/lib/columns/types";
 import { fetchFeed } from "@/lib/integrations/rss";
+import { grokWebSearch } from "@/lib/integrations/xai";
 
 export interface SubstackMeta {
   publication: string;
@@ -109,6 +113,55 @@ export async function searchSubstackPublications(
   );
 
   return filtered.slice(0, totalLimit);
+}
+
+function isSubstackUrl(u: string | undefined): boolean {
+  if (!u) return false;
+  try {
+    const host = new URL(u).hostname.toLowerCase();
+    return host === "substack.com" || host.endsWith(".substack.com");
+  } catch {
+    return false;
+  }
+}
+
+function publicationFromUrl(u: string | undefined): string | null {
+  if (!u) return null;
+  try {
+    const host = new URL(u).hostname.toLowerCase();
+    if (host === "substack.com") return "substack.com";
+    if (host.endsWith(".substack.com")) return host;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function searchSubstackByKeyword(
+  query: string,
+  limit = 20,
+): Promise<FeedItem<SubstackMeta>[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const isUrl = /^https?:\/\//i.test(trimmed);
+  const term = isUrl ? `"${trimmed}"` : trimmed;
+  const composed = `site:substack.com ${term}`;
+  const items = await grokWebSearch(composed, limit * 2);
+  const out: FeedItem<SubstackMeta>[] = [];
+  for (const i of items) {
+    const publication = publicationFromUrl(i.url);
+    if (!publication || !isSubstackUrl(i.url)) continue;
+    const feedTitle =
+      typeof i.author?.name === "string" && i.author.name
+        ? i.author.name
+        : publication;
+    out.push({
+      ...i,
+      meta: { publication, feedTitle, source: feedTitle },
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 function tagWithPublication(

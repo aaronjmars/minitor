@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import {
@@ -43,14 +44,41 @@ export function NavHeader({ onAddDeck, onAddColumn }: Props) {
   return (
     <>
       <SidebarHeader className="gap-2">
-        <div className="flex items-baseline gap-1 px-2 pt-2">
-          <Activity className="size-3.5 translate-y-0.5 text-sidebar-foreground" strokeWidth={2.25} />
-          <span
-            className="font-serif text-[20px] leading-none italic text-sidebar-foreground"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            Minitor
-          </span>
+        <div className="flex flex-col gap-0.5 px-2 pt-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="font-serif text-[20px] leading-none italic text-sidebar-foreground"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              Minitor
+            </span>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={20}
+              height={20}
+              priority
+              className="size-5 shrink-0"
+            />
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-sidebar-foreground/60">
+            <span>by</span>
+            <a
+              href="https://x.com/aeonframework"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-sm transition-colors hover:text-sidebar-foreground"
+            >
+              <Image
+                src="/aeon.jpg"
+                alt="aeon"
+                width={12}
+                height={12}
+                className="size-3 rounded-full ring-1 ring-black/10"
+              />
+              <span>aeon</span>
+            </a>
+          </div>
         </div>
         <button
           type="button"

@@ -35,7 +35,7 @@ const STATE_LABEL: Record<GHPRConfig["state"], string> = {
 
 export const meta: PluginMeta<GHPRConfig, GHPRMeta> = {
   id: "github-prs",
-  label: "GitHub PRs",
+  label: "Repo PRs",
   description: "Latest pull requests on a specific GitHub repository.",
   icon: GitPullRequest,
   accent: "#26251e",

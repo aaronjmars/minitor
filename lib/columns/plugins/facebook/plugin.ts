@@ -15,7 +15,7 @@ export interface FacebookMeta {
 
 export const meta: PluginMeta<FacebookConfig, FacebookMeta> = {
   id: "facebook",
-  label: "Facebook mentions",
+  label: "Facebook",
   description:
     "Watch public Facebook posts and pages for mentions of a keyword or URL.",
   icon: ThumbsUp,
@@ -24,6 +24,6 @@ export const meta: PluginMeta<FacebookConfig, FacebookMeta> = {
   schema,
   defaultConfig: schema.parse({}),
   defaultTitle: (c) =>
-    c.query.trim() ? `Facebook · ${c.query.trim()}` : "Facebook mentions",
-  capabilities: { requiresEnv: ["XAI_API_KEY"] },
+    c.query.trim() ? `Facebook · ${c.query.trim()}` : "Facebook",
+  capabilities: { paginated: true, requiresEnv: ["XAI_API_KEY"] },
 };

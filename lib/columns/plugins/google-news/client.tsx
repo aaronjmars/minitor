@@ -35,7 +35,7 @@ function ConfigForm({ value, onChange }: ConfigFormProps<GoogleNewsConfig>) {
           <Label htmlFor="gnews-hl">Language</Label>
           <Input
             id="gnews-hl"
-            placeholder="en-US"
+            placeholder="all (e.g. en-US)"
             value={value.hl}
             onChange={(e) => onChange({ ...value, hl: e.target.value })}
           />
@@ -44,12 +44,15 @@ function ConfigForm({ value, onChange }: ConfigFormProps<GoogleNewsConfig>) {
           <Label htmlFor="gnews-gl">Country</Label>
           <Input
             id="gnews-gl"
-            placeholder="US"
+            placeholder="all (e.g. US)"
             value={value.gl}
             onChange={(e) => onChange({ ...value, gl: e.target.value })}
           />
         </div>
       </div>
+      <p className="text-[11px] text-muted-foreground">
+        Leave both blank for Google&apos;s default: all languages, mixed countries.
+      </p>
     </div>
   );
 }

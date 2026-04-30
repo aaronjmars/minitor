@@ -46,9 +46,10 @@ export const meta: PluginMeta<YTConfig, YTMeta> = {
   },
   // Only Search mode actually paginates server-side; Channel/Playlist modes
   // return no nextCursor so the card naturally hides Load more there.
+  // No strict requiresEnv: Channel + Playlist modes are keyless (Atom feeds).
+  // Only Search needs YOUTUBE_API_KEY — the ConfigForm flags it inline there.
   capabilities: {
     paginated: true,
-    requiresEnv: ["YOUTUBE_API_KEY"], // only Search mode needs it; warning is best-effort
-    rateLimitHint: "~100 searches/day on YouTube Data API free tier",
+    rateLimitHint: "Channel/Playlist are keyless. Search needs YOUTUBE_API_KEY (~100/day free).",
   },
 };

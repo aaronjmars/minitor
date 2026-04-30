@@ -86,13 +86,9 @@ function headersWith(key: string): HeadersInit {
 }
 
 function userKey(): string {
-  const key = process.env.NEYNAR_API_KEY;
-  if (!key) {
-    throw new Error(
-      "NEYNAR_API_KEY is not set in .env.local. Get one free at https://neynar.com.",
-    );
-  }
-  return key;
+  // Fall back to Neynar's public docs/demo key when no user key is set. It's
+  // rate-limited but works for /cast/search and user lookups out of the box.
+  return process.env.NEYNAR_API_KEY || DEMO_KEY;
 }
 
 async function neynar<T>(

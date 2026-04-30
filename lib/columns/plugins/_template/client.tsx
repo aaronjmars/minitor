@@ -33,7 +33,7 @@ function ItemRenderer({ item }: ItemRendererProps<TemplateMeta>) {
       <div className="text-[11px] text-muted-foreground">
         {item.meta?.source ?? "source"}
       </div>
-      <p className="mt-1 text-[14px] text-foreground">{item.content}</p>
+      <p className="mt-1 text-[12.5px] text-foreground">{item.content}</p>
     </article>
   );
 }

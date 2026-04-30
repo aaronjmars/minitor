@@ -8,70 +8,68 @@ import "server-only";
 import type { AnyColumnServer } from "@/lib/columns/types";
 import { PLUGIN_METAS, REGISTERED_IDS } from "@/lib/columns/plugins/manifest";
 
-import { server as grokAsk } from "@/lib/columns/plugins/grok-ask/server";
 import { server as xSearch } from "@/lib/columns/plugins/x-search/server";
-import { server as xUser } from "@/lib/columns/plugins/x-user/server";
-import { server as xMentions } from "@/lib/columns/plugins/x-mentions/server";
 import { server as xTrending } from "@/lib/columns/plugins/x-trending/server";
-import { server as webSearch } from "@/lib/columns/plugins/web-search/server";
 import { server as newsSearch } from "@/lib/columns/plugins/news-search/server";
 import { server as reddit } from "@/lib/columns/plugins/reddit/server";
 import { server as hackerNews } from "@/lib/columns/plugins/hacker-news/server";
-import { server as github } from "@/lib/columns/plugins/github/server";
+import { server as githubTrending } from "@/lib/columns/plugins/github-trending/server";
+import { server as githubIssues } from "@/lib/columns/plugins/github-issues/server";
 import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
-import { server as mentions } from "@/lib/columns/plugins/mentions/server";
+import { server as bing } from "@/lib/columns/plugins/bing/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
-import { server as newsnow } from "@/lib/columns/plugins/newsnow/server";
+import { server as weiboHot } from "@/lib/columns/plugins/weibo-hot/server";
+import { server as zhihuHot } from "@/lib/columns/plugins/zhihu-hot/server";
+import { server as douyinHot } from "@/lib/columns/plugins/douyin-hot/server";
+import { server as bilibiliHot } from "@/lib/columns/plugins/bilibili-hot/server";
+import { server as toutiao } from "@/lib/columns/plugins/toutiao/server";
+import { server as baiduHot } from "@/lib/columns/plugins/baidu-hot/server";
 import { server as instagram } from "@/lib/columns/plugins/instagram/server";
-import { server as rednote } from "@/lib/columns/plugins/rednote/server";
-import { server as hackerNewsSearch } from "@/lib/columns/plugins/hacker-news-search/server";
 import { server as githubSearch } from "@/lib/columns/plugins/github-search/server";
-import { server as tiktok } from "@/lib/columns/plugins/tiktok/server";
-import { server as weiboSearch } from "@/lib/columns/plugins/weibo-search/server";
 import { server as substack } from "@/lib/columns/plugins/substack/server";
 import { server as linkedin } from "@/lib/columns/plugins/linkedin/server";
 import { server as facebook } from "@/lib/columns/plugins/facebook/server";
 import { server as githubBacklinks } from "@/lib/columns/plugins/github-backlinks/server";
 import { server as walletTx } from "@/lib/columns/plugins/wallet-tx/server";
 import { server as githubPrs } from "@/lib/columns/plugins/github-prs/server";
-import { server as telegramSearch } from "@/lib/columns/plugins/telegram-search/server";
-import { server as appReviews } from "@/lib/columns/plugins/app-reviews/server";
-import { server as githubWatchers } from "@/lib/columns/plugins/github-watchers/server";
+import { server as appleReviews } from "@/lib/columns/plugins/apple-reviews/server";
+import { server as playReviews } from "@/lib/columns/plugins/play-reviews/server";
+import { server as githubStars } from "@/lib/columns/plugins/github-stars/server";
+import { server as githubForks } from "@/lib/columns/plugins/github-forks/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
-  "grok-ask": grokAsk,
   "x-search": xSearch,
-  "x-user": xUser,
-  "x-mentions": xMentions,
   "x-trending": xTrending,
-  "web-search": webSearch,
   "news-search": newsSearch,
   reddit,
   "hacker-news": hackerNews,
-  github,
+  "github-trending": githubTrending,
+  "github-issues": githubIssues,
   rss,
   "google-news": googleNews,
-  mentions,
+  bing,
   farcaster,
   youtube,
-  newsnow,
+  "weibo-hot": weiboHot,
+  "zhihu-hot": zhihuHot,
+  "douyin-hot": douyinHot,
+  "bilibili-hot": bilibiliHot,
+  toutiao,
+  "baidu-hot": baiduHot,
   instagram,
-  rednote,
-  "hacker-news-search": hackerNewsSearch,
   "github-search": githubSearch,
-  tiktok,
-  "weibo-search": weiboSearch,
   substack,
   linkedin,
   facebook,
   "github-backlinks": githubBacklinks,
   "wallet-tx": walletTx,
   "github-prs": githubPrs,
-  "telegram-search": telegramSearch,
-  "app-reviews": appReviews,
-  "github-watchers": githubWatchers,
+  "apple-reviews": appleReviews,
+  "play-reviews": playReviews,
+  "github-stars": githubStars,
+  "github-forks": githubForks,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than

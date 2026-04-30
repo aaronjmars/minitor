@@ -141,7 +141,7 @@ function ItemRenderer({ item }: ItemRendererProps<WalletTxMeta>) {
         </span>
       </div>
 
-      <div className="mt-1.5 flex items-center gap-2 text-[13px] text-foreground">
+      <div className="mt-1.5 flex items-center gap-2 text-[12.5px] text-foreground">
         <DirectionIcon
           className={`size-4 ${isOutgoing ? "text-rose-500" : "text-emerald-500"}`}
         />

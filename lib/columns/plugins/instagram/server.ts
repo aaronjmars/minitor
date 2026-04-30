@@ -9,11 +9,18 @@ import {
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { fetchInstagram } from "@/lib/integrations/instagram";
+import { sliceForPage } from "@/lib/columns/paginate";
 import { meta, type InstagramConfig, type InstagramMeta } from "./plugin";
 
-const fetch: ServerFetcher<InstagramConfig, InstagramMeta> = async (config) => {
-  const items = (await fetchInstagram(config.query)) as FeedItem<InstagramMeta>[];
-  return { items };
+const fetch: ServerFetcher<InstagramConfig, InstagramMeta> = async (
+  config,
+  cursor,
+) => {
+  const items = (await fetchInstagram(
+    config.query,
+    30,
+  )) as FeedItem<InstagramMeta>[];
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<InstagramConfig, InstagramMeta>({
