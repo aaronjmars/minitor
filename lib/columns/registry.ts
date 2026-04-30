@@ -26,6 +26,7 @@ import { column as rss } from "@/lib/columns/plugins/rss/client";
 import { column as googleNews } from "@/lib/columns/plugins/google-news/client";
 import { column as mentions } from "@/lib/columns/plugins/mentions/client";
 import { column as farcaster } from "@/lib/columns/plugins/farcaster/client";
+import { column as instagram } from "@/lib/columns/plugins/instagram/client";
 import { column as youtube } from "@/lib/columns/plugins/youtube/client";
 import { column as newsnow } from "@/lib/columns/plugins/newsnow/client";
 
@@ -47,6 +48,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "google-news": googleNews,
   mentions,
   farcaster,
+  instagram,
   youtube,
   newsnow,
 };
