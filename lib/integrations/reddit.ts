@@ -42,15 +42,6 @@ interface RedditListingExt {
   error?: number;
 }
 
-export async function fetchSubreddit(
-  subreddit: string,
-  sortBy: string,
-  limit = 12,
-): Promise<FeedItem[]> {
-  const { items } = await fetchSubredditPage(subreddit, sortBy, limit);
-  return items;
-}
-
 export async function fetchSubredditPage(
   subreddit: string,
   sortBy: string,

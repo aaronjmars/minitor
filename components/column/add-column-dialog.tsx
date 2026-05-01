@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { listColumnTypes } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
-import type { AnyColumnType } from "@/lib/columns/types";
+import type { AnyColumnUI } from "@/lib/columns/types";
 import {
   Tooltip,
   TooltipContent,
@@ -44,7 +44,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
     });
   }, []);
 
-  const [selectedType, setSelectedType] = useState<AnyColumnType | null>(null);
+  const [selectedType, setSelectedType] = useState<AnyColumnUI | null>(null);
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [title, setTitle] = useState("");
   const [filter, setFilter] = useState("");
@@ -73,7 +73,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
     };
   }, [open, allRequiredKeys]);
 
-  function isMissingKeys(t: AnyColumnType): string[] {
+  function isMissingKeys(t: AnyColumnUI): string[] {
     const required = t.capabilities?.requiresEnv ?? [];
     return required.filter((k) => !keyAvailability[k]);
   }
@@ -99,7 +99,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
     onOpenChange(next);
   }
 
-  function pickType(type: AnyColumnType) {
+  function pickType(type: AnyColumnUI) {
     setSelectedType(type);
     setConfig({ ...(type.defaultConfig as Record<string, unknown>) });
     setTitle(type.defaultTitle(type.defaultConfig as never));
@@ -272,7 +272,7 @@ export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   );
 }
 
-function CapabilitiesNote({ type }: { type: AnyColumnType }) {
+function CapabilitiesNote({ type }: { type: AnyColumnUI }) {
   const caps = type.capabilities;
   if (!caps) return null;
   const requiresEnv = caps.requiresEnv ?? [];

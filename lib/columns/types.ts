@@ -136,11 +136,6 @@ export function defineColumnServer<
   return server as unknown as AnyColumnServer;
 }
 
-export type ColumnType<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
-> = ColumnUI<TConfig>;
-export type AnyColumnType = AnyColumnUI;
-
 export interface Column {
   id: string;
   typeId: string;
