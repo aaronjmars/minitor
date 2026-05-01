@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import {
 import { RenameDialog } from "@/components/dialogs/rename-dialog";
 import { useDeckStore } from "@/lib/store/use-deck-store";
 import { AddColumnDialog } from "@/components/column/add-column-dialog";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
 
 export function NavFooter() {
   const addDeck = useDeckStore((s) => s.addDeck);
@@ -28,14 +29,15 @@ export function NavFooter() {
 
   const [newDeckOpen, setNewDeckOpen] = useState(false);
   const [addColOpen, setAddColOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="flex items-center gap-1">
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex h-8 w-full items-center justify-between gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
+              <DropdownMenuTrigger className="flex h-8 flex-1 items-center justify-between gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
                 <span>Add new</span>
                 <Plus className="size-4" />
               </DropdownMenuTrigger>
@@ -57,6 +59,15 @@ export function NavFooter() {
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Settings"
+              title="Settings"
+              className="flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <Settings className="size-4" />
+            </button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
@@ -79,6 +90,7 @@ export function NavFooter() {
           deckId={activeDeckId}
         />
       )}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 }
