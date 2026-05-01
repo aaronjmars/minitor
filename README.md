@@ -59,7 +59,7 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 | Category | Columns |
 |----------|---------|
 | **Social — X / Reddit / HN / Farcaster** (5) | `x-search`, `x-trending`, `reddit`, `hacker-news`, `farcaster` |
-| **GitHub** (8) | `github-trending`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks` |
+| **GitHub** (8) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks` |
 | **News & web** (4) | `bing` (Web search), `google-news`, `news-search`, `rss` |
 | **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
 | **Mention monitors** (2) | `facebook`, `instagram` |

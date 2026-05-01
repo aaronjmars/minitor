@@ -42,6 +42,7 @@ import { column as appleReviews } from "@/lib/columns/plugins/apple-reviews/clie
 import { column as playReviews } from "@/lib/columns/plugins/play-reviews/client";
 import { column as githubStars } from "@/lib/columns/plugins/github-stars/client";
 import { column as githubForks } from "@/lib/columns/plugins/github-forks/client";
+import { column as githubReleases } from "@/lib/columns/plugins/github-releases/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
 // read `column.id` reliably from a server context anyway, so the id has to
@@ -77,6 +78,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "play-reviews": playReviews,
   "github-stars": githubStars,
   "github-forks": githubForks,
+  "github-releases": githubReleases,
 };
 
 // Pre-built ordered list, indexed by manifest order. Built once at module init.
