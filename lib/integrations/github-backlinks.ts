@@ -1,19 +1,21 @@
 import type { FeedItem } from "@/lib/columns/types";
+import type {
+  BacklinkSource,
+  BacklinksConfig as PluginBacklinksConfig,
+} from "@/lib/columns/plugins/github-backlinks/plugin";
 import { fetchGitHub } from "@/lib/integrations/github";
 import { fetchHackerNews } from "@/lib/integrations/hackernews";
 import { searchReddit } from "@/lib/integrations/reddit";
 import { fetchFeed, googleNewsUrl } from "@/lib/integrations/rss";
 
-export type BacklinkSource =
-  | "hn"
-  | "reddit"
-  | "google-news"
-  | "bing-news"
-  | "github";
+// `BacklinkSource` is the renderer contract (used by the plugin's
+// SOURCE_LABEL / SOURCE_BG maps). Re-export so the integration stays its
+// own importable surface for callers that don't reach into the plugin.
+export type { BacklinkSource };
 
-export interface BacklinksConfig {
-  repo: string;
-  includeIssues?: boolean;
+// The integration accepts a superset of the plugin's config — the plugin
+// schema doesn't expose `limitPerSource`, but the underlying fetcher does.
+export interface BacklinksConfig extends PluginBacklinksConfig {
   limitPerSource?: number;
 }
 
