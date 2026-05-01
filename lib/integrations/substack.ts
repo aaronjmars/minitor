@@ -13,6 +13,7 @@ import type { FeedItem } from "@/lib/columns/types";
 import type { SubstackMeta } from "@/lib/columns/plugins/substack/plugin";
 import { fetchFeed } from "@/lib/integrations/rss";
 import { grokWebSearch } from "@/lib/integrations/xai";
+import { identiconUrl } from "@/lib/utils";
 
 // `SubstackMeta` is the renderer contract (defined alongside the plugin so
 // `ItemRendererProps<SubstackMeta>` types correctly). Re-exported here so
@@ -183,7 +184,7 @@ function tagWithPublication(
       handle: publication,
       avatarUrl:
         item.author.avatarUrl ??
-        `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(publication)}`,
+        identiconUrl(publication),
     },
     meta: { publication, feedTitle, source },
   };

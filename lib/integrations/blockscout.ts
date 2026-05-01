@@ -1,5 +1,6 @@
 import type { FeedItem } from "@/lib/columns/types";
 import type { WalletTxMeta } from "@/lib/columns/plugins/wallet-tx/plugin";
+import { identiconUrl } from "@/lib/utils";
 
 // `WalletTxMeta` is the plugin/renderer contract; the fetcher here produces
 // `FeedItem<WalletTxMeta>` so its meta lines up with what the wallet-tx
@@ -249,7 +250,7 @@ export async function fetchAddressTransactions(
       author: {
         name: shortAddress(fromAddr || address),
         handle: fromAddr || address,
-        avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(fromAddr || address)}`,
+        avatarUrl: identiconUrl(fromAddr || address),
       },
       content: `${value.display} ${value.symbol}`,
       url: explorerTxUrl(chain, tx.hash),

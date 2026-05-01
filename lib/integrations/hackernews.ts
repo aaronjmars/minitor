@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 // Algolia HN API — public, no auth, generous rate limits.
 // https://hn.algolia.com/api
@@ -86,7 +87,7 @@ function mapHit(h: AlgoliaHit): FeedItem {
     author: {
       name: author,
       handle: author,
-      avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(author)}`,
+      avatarUrl: identiconUrl(author),
     },
     content: snippet ? `${title}\n\n${snippet}` : title,
     url: externalUrl ?? itemUrl,

@@ -2,12 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { useDeckStore } from "@/lib/store/use-deck-store";
-
-function compact(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
+import { formatCompactCount } from "@/lib/utils";
 
 // Re-render every minute so "Updated" stays fresh — useSyncExternalStore keeps
 // `Date.now()` out of render bodies (React's purity rule).
@@ -48,9 +43,9 @@ export function NavStats() {
       : Math.max(0, nowMinute * 60_000 - latestFetchMs);
 
   const data: { name: string; value: string }[] = [
-    { name: "Decks", value: compact(decksCount) },
-    { name: "Columns", value: compact(columnsCount) },
-    { name: "Items", value: compact(itemsCount) },
+    { name: "Decks", value: formatCompactCount(decksCount) },
+    { name: "Columns", value: formatCompactCount(columnsCount) },
+    { name: "Items", value: formatCompactCount(itemsCount) },
     {
       name: "Updated",
       value:

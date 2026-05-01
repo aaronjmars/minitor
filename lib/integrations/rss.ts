@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl, truncateText } from "@/lib/utils";
 
 interface ParsedItem {
   id: string;
@@ -49,7 +50,7 @@ function clean(raw: string, max = 600): string {
   // Order matters: CDATA-unwrap, then decode entities (which may turn `&lt;a&gt;`
   // back into real `<a>` tags — common in Google News descriptions), then strip.
   const out = stripTags(decodeEntities(stripCdata(raw))).trim();
-  return out.length > max ? `${out.slice(0, max).trimEnd()}…` : out;
+  return truncateText(out, max);
 }
 
 function parseRss(xml: string): ParsedFeed {
@@ -188,7 +189,7 @@ export async function fetchFeed(url: string, limit = 12): Promise<FeedItem[]> {
       author: {
         name: source,
         handle: source,
-        avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(source)}`,
+        avatarUrl: identiconUrl(source),
       },
       content: it.description ? `${it.title}\n\n${it.description}` : it.title,
       url: link,

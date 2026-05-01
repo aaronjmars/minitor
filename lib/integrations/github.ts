@@ -1,5 +1,6 @@
 import type { FeedItem } from "@/lib/columns/types";
 import type { GHPRMeta } from "@/lib/columns/plugins/github-prs/plugin";
+import { identiconUrl, truncateText } from "@/lib/utils";
 
 // `GHPRMeta` is the renderer contract owned by the github-prs plugin; the
 // fetcher below produces `FeedItem<GHPRMeta>` so its meta lines up with what
@@ -140,7 +141,7 @@ async function fetchTrending(
         handle: owner,
         avatarUrl:
           r.owner?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(owner)}`,
+          identiconUrl(owner),
       },
       content: r.description
         ? `${r.full_name}\n\n${r.description}`
@@ -181,8 +182,7 @@ async function fetchReleases(
       const author = r.author?.login ?? clean.split("/")[0] ?? "github";
       const title = r.name?.trim() || r.tag_name;
       const body = (r.body ?? "").trim();
-      const trimmed =
-        body.length > 600 ? `${body.slice(0, 600).trimEnd()}…` : body;
+      const trimmed = truncateText(body, 600);
       return {
         id: `rel-${r.id}`,
         author: {
@@ -190,7 +190,7 @@ async function fetchReleases(
           handle: author,
           avatarUrl:
             r.author?.avatar_url ??
-            `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(clean)}`,
+            identiconUrl(clean),
         },
         content: trimmed ? `${title}\n\n${trimmed}` : title,
         url: r.html_url,
@@ -229,8 +229,7 @@ async function fetchIssues(
     const isPR = !!i.pull_request;
     const repo = i.repository_url.replace(`${API}/repos/`, "");
     const body = (i.body ?? "").trim();
-    const trimmed =
-      body.length > 400 ? `${body.slice(0, 400).trimEnd()}…` : body;
+    const trimmed = truncateText(body, 400);
     return {
       id: `iss-${i.id}`,
       author: {
@@ -238,7 +237,7 @@ async function fetchIssues(
         handle: user,
         avatarUrl:
           i.user?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(user)}`,
+          identiconUrl(user),
       },
       content: trimmed ? `${i.title}\n\n${trimmed}` : i.title,
       url: i.html_url,
@@ -285,8 +284,7 @@ export async function fetchPullRequests(
         ? "closed"
         : "open";
     const body = (p.body ?? "").trim();
-    const trimmed =
-      body.length > 400 ? `${body.slice(0, 400).trimEnd()}…` : body;
+    const trimmed = truncateText(body, 400);
     const sortField = sort === "created" ? p.created_at : p.updated_at;
     return {
       id: `pr-${p.id}`,
@@ -295,7 +293,7 @@ export async function fetchPullRequests(
         handle: user,
         avatarUrl:
           p.user?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(user)}`,
+          identiconUrl(user),
       },
       content: trimmed ? `${p.title}\n\n${trimmed}` : p.title,
       url: p.html_url,
@@ -401,7 +399,7 @@ async function searchRepos(
         handle: owner,
         avatarUrl:
           r.owner?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(owner)}`,
+          identiconUrl(owner),
       },
       content: r.description
         ? `${r.full_name}\n\n${r.description}`
@@ -440,8 +438,7 @@ async function searchIssuesScope(
     const isPr = !!i.pull_request;
     const repo = i.repository_url.replace(`${API}/repos/`, "");
     const body = (i.body ?? "").trim();
-    const trimmed =
-      body.length > 400 ? `${body.slice(0, 400).trimEnd()}…` : body;
+    const trimmed = truncateText(body, 400);
     return {
       id: `ghs-iss-${i.id}`,
       author: {
@@ -449,7 +446,7 @@ async function searchIssuesScope(
         handle: user,
         avatarUrl:
           i.user?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(user)}`,
+          identiconUrl(user),
       },
       content: trimmed ? `${i.title}\n\n${trimmed}` : i.title,
       url: i.html_url,
@@ -501,10 +498,7 @@ async function searchCode(
       c.repository.full_name.split("/")[0] ??
       "github";
     const fragment = (c.text_matches?.[0]?.fragment ?? "").trim();
-    const snippet =
-      fragment.length > 400
-        ? `${fragment.slice(0, 400).trimEnd()}…`
-        : fragment;
+    const snippet = truncateText(fragment, 400);
     const title = `${c.repository.full_name} · ${c.path}`;
     return {
       id: `ghs-code-${c.repository.full_name}-${c.sha}-${c.path}`,
@@ -513,7 +507,7 @@ async function searchCode(
         handle: owner,
         avatarUrl:
           c.repository.owner?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(owner)}`,
+          identiconUrl(owner),
       },
       content: snippet ? `${title}\n\n${snippet}` : title,
       url: c.html_url,
@@ -550,10 +544,7 @@ async function searchCommits(
     const message = (c.commit.message ?? "").trim();
     const [firstLine, ...rest] = message.split("\n");
     const restJoined = rest.join("\n").trim();
-    const trimmed =
-      restJoined.length > 400
-        ? `${restJoined.slice(0, 400).trimEnd()}…`
-        : restJoined;
+    const trimmed = truncateText(restJoined, 400);
     return {
       id: `ghs-commit-${c.sha}`,
       author: {
@@ -561,7 +552,7 @@ async function searchCommits(
         handle,
         avatarUrl:
           c.author?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(handle)}`,
+          identiconUrl(handle),
       },
       content: trimmed ? `${firstLine}\n\n${trimmed}` : firstLine,
       url: c.html_url,
@@ -682,7 +673,7 @@ async function ghFetchStargazersPageREST(
         handle: u.login,
         avatarUrl:
           u.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(u.login)}`,
+          identiconUrl(u.login),
       },
       content: `${u.login} starred ${fullRepo}`,
       url: u.html_url ?? `https://github.com/${u.login}`,
@@ -759,7 +750,7 @@ async function fetchStargazersGraphQL(
         handle: u.login,
         avatarUrl:
           u.avatarUrl ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(u.login)}`,
+          identiconUrl(u.login),
       },
       content: `${u.login} starred ${fullRepo}`,
       url: u.url ?? `https://github.com/${u.login}`,
@@ -857,7 +848,7 @@ export async function fetchForks(
         handle: owner,
         avatarUrl:
           f.owner?.avatar_url ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(owner)}`,
+          identiconUrl(owner),
       },
       content: `${owner} forked ${fullRepo}`,
       url: f.owner?.html_url ?? `https://github.com/${owner}`,

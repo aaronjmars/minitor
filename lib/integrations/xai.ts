@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 const XAI_URL = "https://api.x.ai/v1/responses";
 
@@ -151,7 +152,7 @@ function toWebFeedItem(g: GrokItem, kind: "web" | "news"): FeedItem | null {
     author: {
       name: source,
       handle: source,
-      avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(source)}`,
+      avatarUrl: identiconUrl(source),
     },
     content: g.title ? `${g.title}\n\n${g.snippet ?? ""}`.trim() : content,
     url,
