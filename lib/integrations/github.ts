@@ -603,9 +603,7 @@ export async function searchGitHub(
   }
 }
 
-// ---------------------------------------------------------------------------
 // Stargazers + forks (used by the github-watchers plugin)
-// ---------------------------------------------------------------------------
 
 export interface GHWatcherItemMeta {
   kind: "star" | "fork";
@@ -646,9 +644,7 @@ function parseLastPage(linkHeader: string | null): number | undefined {
         const u = new URL(m[1]);
         const p = u.searchParams.get("page");
         if (p) return Number(p);
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
   }
   return undefined;

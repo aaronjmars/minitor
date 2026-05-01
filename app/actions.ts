@@ -245,8 +245,6 @@ export async function persistFetchedItems(
   return { newCount, lastFetchedAt: fetchedAt.toISOString() };
 }
 
-// ---- env key management (Settings dialog) ---------------------------------
-
 const ENV_LOCAL_PATH = join(process.cwd(), ".env.local");
 
 export interface EnvKeyStatus {

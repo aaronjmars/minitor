@@ -160,8 +160,6 @@ function toWebFeedItem(g: GrokItem, kind: "web" | "news"): FeedItem | null {
   };
 }
 
-// ---------- Public fetchers ----------
-
 const X_ITEM_SHAPE =
   '[{"id":"string","author_handle":"string","author_name":"string","content":"string","created_at":"ISO8601","url":"string","likes":0,"reposts":0,"replies":0}]';
 
