@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
-import type { AnyColumnType, Column, Deck, FeedItem } from "@/lib/columns/types";
+import type { AnyColumnUI, Column, Deck, FeedItem } from "@/lib/columns/types";
 import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
 import { callColumnApi } from "@/lib/columns/api-client";
 import {
@@ -50,7 +50,7 @@ interface DeckState {
   applyFetchedItems: (columnId: string, items: FeedItem[]) => Promise<number>;
   autoFetchColumn: (
     columnId: string,
-    type: AnyColumnType,
+    type: AnyColumnUI,
     ready?: Promise<void>,
   ) => Promise<void>;
 }

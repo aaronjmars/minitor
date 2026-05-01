@@ -22,14 +22,8 @@ import {
   type ConfigFormProps,
   type ItemRendererProps,
 } from "@/lib/columns/types";
+import { formatCompactCount } from "@/lib/utils";
 import { meta, type GHPRConfig, type GHPRMeta } from "./plugin";
-
-function compact(n: number): string {
-  if (Math.abs(n) < 1000) return String(n);
-  if (Math.abs(n) < 1_000_000)
-    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
 
 function ConfigForm({ value, onChange }: ConfigFormProps<GHPRConfig>) {
   return (
@@ -179,18 +173,18 @@ function ItemRenderer({ item }: ItemRendererProps<GHPRMeta>) {
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <MessageSquareText className="size-3.5" />
-            <span className="tabular-nums">{compact(m.commentsCount)}</span>
+            <span className="tabular-nums">{formatCompactCount(m.commentsCount)}</span>
           </span>
           {(m.additions !== undefined || m.deletions !== undefined) && (
             <span className="flex items-center gap-2 tabular-nums">
               {m.additions !== undefined && (
                 <span className="text-emerald-700 dark:text-emerald-400">
-                  +{compact(m.additions)}
+                  +{formatCompactCount(m.additions)}
                 </span>
               )}
               {m.deletions !== undefined && (
                 <span className="text-rose-700 dark:text-rose-400">
-                  −{compact(m.deletions)}
+                  −{formatCompactCount(m.deletions)}
                 </span>
               )}
             </span>

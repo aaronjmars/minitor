@@ -16,14 +16,8 @@ import {
   type ConfigFormProps,
   type ItemRendererProps,
 } from "@/lib/columns/types";
+import { formatCompactCount } from "@/lib/utils";
 import { meta, type RedditConfig, type RedditMeta } from "./plugin";
-
-function compact(n: number): string {
-  if (Math.abs(n) < 1000) return String(n);
-  if (Math.abs(n) < 1_000_000)
-    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
 
 function ConfigForm({ value, onChange }: ConfigFormProps<RedditConfig>) {
   return (
@@ -103,11 +97,11 @@ function ItemRenderer({ item }: ItemRendererProps<RedditMeta>) {
       <div className="mt-2 flex items-center gap-4 text-[11.5px] text-muted-foreground">
         <span className="flex items-center gap-1 transition-colors group-hover/item:text-foreground">
           <ArrowBigUp className="size-4" />
-          <span className="tabular-nums">{compact(score)}</span>
+          <span className="tabular-nums">{formatCompactCount(score)}</span>
         </span>
         <span className="flex items-center gap-1 transition-colors group-hover/item:text-foreground">
           <MessageSquareText className="size-3.5" />
-          <span className="tabular-nums">{compact(comments)}</span>
+          <span className="tabular-nums">{formatCompactCount(comments)}</span>
         </span>
       </div>
     </a>

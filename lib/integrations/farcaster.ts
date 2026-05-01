@@ -1,26 +1,17 @@
 import type { FeedItem } from "@/lib/columns/types";
 
-// =============================================================================
-// FARCASTER VIA NEYNAR
+// Farcaster via Neynar. USER + SEARCH modes are exposed; TRENDING and CHANNEL
+// require Neynar Starter+ ($9/mo, returns 402 on the free tier) and are kept
+// below as `fetchTrending` / `fetchChannel` for re-enable.
 //
-// Exposed today: USER mode + SEARCH mode (with demo-key fallback).
-// Still gated: TRENDING and CHANNEL — both require Neynar Starter+ paid plan
-// ($9/mo as of 2026-04). Hitting them on a free key returns 402 PaymentRequired.
+// Search relies on a trick: Neynar publishes a public demo key
+// (`NEYNAR_API_DOCS`) used in their docs that responds to /cast/search even
+// on the free tier. We try the user's key first; on 402 fall back to the demo
+// key. Rate-limited at the demo bucket but works for low-volume monitoring.
 //
-// Search trick: Neynar publishes a public demo key (NEYNAR_API_DOCS) used in
-// their docs that responds to /cast/search even on the free tier. We try the
-// user's key first; on 402 we fall back to the demo key. It's rate-limited at
-// the demo bucket (small) but it works for low-volume monitoring.
-//
-// To re-enable Trending / Channel when the plan is upgraded:
-//   1. Add cases for "trending" and "channel" in fetchFarcaster (already present below).
-//   2. Restore the multi-mode dispatch in app/api/columns/[type]/route.ts.
-//   3. Restore the mode selector + per-mode inputs in lib/columns/farcaster.tsx.
-//
-// Public-hub fallbacks were investigated and ruled out: the major free hubs
-// (Pinata, Neynar, nemes/lamia) are now down, paywalled, or unreachable as of
-// 2026-04. Self-hosted Snapchain (~30GB, $25/mo VPS) is the only keyless path.
-// =============================================================================
+// Public-hub fallbacks (Pinata, nemes/lamia) were ruled out as of 2026-04 —
+// all down, paywalled, or unreachable. Self-hosted Snapchain is the only
+// keyless path.
 
 const NEYNAR = "https://api.neynar.com";
 
@@ -198,10 +189,8 @@ export async function fetchFarcasterUser(
   return mapCasts(casts, limit);
 }
 
-// -----------------------------------------------------------------------------
-// PAID-TIER HELPERS — kept intentionally for re-enable. Currently NOT exported.
-// All three return 402 PaymentRequired on Neynar's free tier.
-// -----------------------------------------------------------------------------
+// Paid-tier helpers — not currently exported. All three return 402 on Neynar's
+// free tier; kept here so the re-enable path stays a one-liner in route.ts.
 
 async function fetchTrending(
   windowSize: FCWindow,

@@ -1,4 +1,12 @@
 import type { FeedItem } from "@/lib/columns/types";
+import type { WalletTxMeta } from "@/lib/columns/plugins/wallet-tx/plugin";
+import { identiconUrl } from "@/lib/utils";
+
+// `WalletTxMeta` is the plugin/renderer contract; the fetcher here produces
+// `FeedItem<WalletTxMeta>` so its meta lines up with what the wallet-tx
+// renderer reads. Re-exported here so call sites that grab WalletTxMeta from
+// the integration keep working.
+export type { WalletTxMeta };
 
 // Multi-chain Blockscout REST v2 client. Keyless by default. If
 // `BLOCKSCOUT_API_KEY` is set, it's appended as `?apikey=` to every request
@@ -48,20 +56,6 @@ export function explorerTxUrl(chain: Chain, hash: string): string {
 
 export function explorerAddressUrl(chain: Chain, address: string): string {
   return `https://${CHAINS[chain].host}/address/${address}`;
-}
-
-export interface WalletTxMeta {
-  chainId: number;
-  hash: string;
-  from: string;
-  to: string;
-  value: string;
-  valueUsd?: number;
-  method?: string;
-  status: "success" | "failed";
-  blockNumber: number;
-  gasUsed?: string;
-  [key: string]: unknown;
 }
 
 interface BSAddressRef {
@@ -256,7 +250,7 @@ export async function fetchAddressTransactions(
       author: {
         name: shortAddress(fromAddr || address),
         handle: fromAddr || address,
-        avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(fromAddr || address)}`,
+        avatarUrl: identiconUrl(fromAddr || address),
       },
       content: `${value.display} ${value.symbol}`,
       url: explorerTxUrl(chain, tx.hash),

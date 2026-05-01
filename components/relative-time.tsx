@@ -62,7 +62,6 @@ function abbreviate(s: string): string {
 }
 
 export function RelativeTime({ date, addSuffix = false, compact = false }: Props) {
-  // Subscribe so we re-render once per second.
   useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const d = typeof date === "string" ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return null;

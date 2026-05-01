@@ -83,9 +83,10 @@ export async function loadSnapshot(): Promise<Snapshot> {
     decksById[c.deckId]?.columnIds.push(c.id);
   }
 
-  const itemRows: ItemRow[] = Array.isArray(itemResult)
-    ? (itemResult as ItemRow[])
-    : ((itemResult as unknown as { rows?: ItemRow[] }).rows ?? []);
+  // All three Drizzle drivers (pglite / neon-http / node-postgres) return
+  // `{ rows: T[] }` from `db.execute(sql)`, so we can read `.rows` directly
+  // without normalizing across drivers.
+  const itemRows = (itemResult.rows ?? []) as ItemRow[];
   for (const item of itemRows) {
     const col = columnsById[item.column_id];
     if (!col) continue;
@@ -244,8 +245,6 @@ export async function persistFetchedItems(
 
   return { newCount, lastFetchedAt: fetchedAt.toISOString() };
 }
-
-// ---- env key management (Settings dialog) ---------------------------------
 
 const ENV_LOCAL_PATH = join(process.cwd(), ".env.local");
 

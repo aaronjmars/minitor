@@ -1,5 +1,6 @@
 import type { FeedItem } from "@/lib/columns/types";
 import { fetchFeed } from "@/lib/integrations/rss";
+import { identiconUrl, truncateText } from "@/lib/utils";
 
 // YouTube Data API v3 for search; YouTube's public Atom feeds for channel /
 // playlist (no key needed). Search costs 100 units / call, default daily
@@ -129,16 +130,13 @@ export async function fetchSearchPage(
       if (!videoId || !sn) return null;
       const d = detail.get(videoId);
       const description = (sn.description ?? "").trim();
-      const trimmed =
-        description.length > 280
-          ? `${description.slice(0, 280).trimEnd()}…`
-          : description;
+      const trimmed = truncateText(description, 280);
       return {
         id: videoId,
         author: {
           name: sn.channelTitle ?? "YouTube",
           handle: sn.channelTitle ?? "youtube",
-          avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(sn.channelId ?? sn.channelTitle ?? "yt")}`,
+          avatarUrl: identiconUrl(sn.channelId ?? sn.channelTitle ?? "yt"),
         },
         content: trimmed ? `${sn.title ?? ""}\n\n${trimmed}` : (sn.title ?? ""),
         url: `https://www.youtube.com/watch?v=${videoId}`,

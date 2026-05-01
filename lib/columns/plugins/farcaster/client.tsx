@@ -10,14 +10,8 @@ import {
   type ConfigFormProps,
   type ItemRendererProps,
 } from "@/lib/columns/types";
+import { formatCompactCount } from "@/lib/utils";
 import { meta, type FCConfig, type FCMeta } from "./plugin";
-
-function compact(n: number): string {
-  if (Math.abs(n) < 1000) return String(n);
-  if (Math.abs(n) < 1_000_000)
-    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
 
 function ConfigForm({ value, onChange }: ConfigFormProps<FCConfig>) {
   return (
@@ -106,15 +100,15 @@ function ItemRenderer({ item }: ItemRendererProps<FCMeta>) {
           <div className="mt-2 flex items-center gap-4 text-[11.5px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <MessageCircle className="size-3.5" />
-              <span className="tabular-nums">{compact(replies)}</span>
+              <span className="tabular-nums">{formatCompactCount(replies)}</span>
             </span>
             <span className="flex items-center gap-1">
               <Repeat2 className="size-3.5" />
-              <span className="tabular-nums">{compact(recasts)}</span>
+              <span className="tabular-nums">{formatCompactCount(recasts)}</span>
             </span>
             <span className="flex items-center gap-1">
               <Heart className="size-3.5" />
-              <span className="tabular-nums">{compact(likes)}</span>
+              <span className="tabular-nums">{formatCompactCount(likes)}</span>
             </span>
           </div>
         </div>

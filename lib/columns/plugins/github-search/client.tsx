@@ -25,14 +25,8 @@ import {
   type ConfigFormProps,
   type ItemRendererProps,
 } from "@/lib/columns/types";
+import { formatCompactCount } from "@/lib/utils";
 import { meta, type GHSearchConfig, type GHSearchMeta } from "./plugin";
-
-function compact(n: number): string {
-  if (Math.abs(n) < 1000) return String(n);
-  if (Math.abs(n) < 1_000_000)
-    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
 
 function ConfigForm({ value, onChange }: ConfigFormProps<GHSearchConfig>) {
   const isUrl = /^https?:\/\//i.test(value.query.trim());
@@ -147,11 +141,11 @@ function MetaRow({ m }: { m: GHSearchMeta }) {
       <div className="mt-2 flex items-center gap-4 text-[11.5px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <Star className="size-3.5" />
-          <span className="tabular-nums">{compact(stars)}</span>
+          <span className="tabular-nums">{formatCompactCount(stars)}</span>
         </span>
         <span className="flex items-center gap-1">
           <GitBranch className="size-3.5" />
-          <span className="tabular-nums">{compact(forks)}</span>
+          <span className="tabular-nums">{formatCompactCount(forks)}</span>
         </span>
         {m.language && (
           <span className="truncate text-foreground/70">{m.language}</span>
@@ -168,7 +162,7 @@ function MetaRow({ m }: { m: GHSearchMeta }) {
         )}
         <span className="flex items-center gap-1">
           <MessageSquareText className="size-3.5" />
-          <span className="tabular-nums">{compact(comments)}</span>
+          <span className="tabular-nums">{formatCompactCount(comments)}</span>
         </span>
         {m.repo && (
           <span className="truncate text-foreground/70">{m.repo}</span>

@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 const UA = "minitor/0.1 (https://github.com/anthropics/claude-code dashboard)";
 
@@ -40,15 +41,6 @@ interface RedditListingExt {
   data?: RedditListingDataExt;
   message?: string;
   error?: number;
-}
-
-export async function fetchSubreddit(
-  subreddit: string,
-  sortBy: string,
-  limit = 12,
-): Promise<FeedItem[]> {
-  const { items } = await fetchSubredditPage(subreddit, sortBy, limit);
-  return items;
 }
 
 export async function fetchSubredditPage(
@@ -99,7 +91,7 @@ function toFeedItem(c: RedditChild, fallbackSub: string): FeedItem {
     author: {
       name: author,
       handle: author,
-      avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(author)}`,
+      avatarUrl: identiconUrl(author),
     },
     content: d.title ?? "",
     url: permalink,

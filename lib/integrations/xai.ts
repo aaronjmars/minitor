@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 const XAI_URL = "https://api.x.ai/v1/responses";
 
@@ -151,7 +152,7 @@ function toWebFeedItem(g: GrokItem, kind: "web" | "news"): FeedItem | null {
     author: {
       name: source,
       handle: source,
-      avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(source)}`,
+      avatarUrl: identiconUrl(source),
     },
     content: g.title ? `${g.title}\n\n${g.snippet ?? ""}`.trim() : content,
     url,
@@ -159,8 +160,6 @@ function toWebFeedItem(g: GrokItem, kind: "web" | "news"): FeedItem | null {
     meta: { source, kind },
   };
 }
-
-// ---------- Public fetchers ----------
 
 const X_ITEM_SHAPE =
   '[{"id":"string","author_handle":"string","author_name":"string","content":"string","created_at":"ISO8601","url":"string","likes":0,"reposts":0,"replies":0}]';
@@ -172,26 +171,6 @@ export async function grokXSearch(query: string, limit = 6): Promise<FeedItem[]>
   const prompt = `Search X for the ${limit} most recent posts matching: ${JSON.stringify(
     query,
   )}. Sort by newest first. Return ONLY a JSON array (no prose, no code fences) matching this shape: ${X_ITEM_SHAPE}.`;
-  const items = await callGrok({ prompt, tools: [{ type: "x_search" }] });
-  return items
-    .map(toXFeedItem)
-    .filter((i): i is FeedItem => i !== null)
-    .slice(0, limit);
-}
-
-export async function grokXUser(handle: string, limit = 6): Promise<FeedItem[]> {
-  const clean = stripAt(handle);
-  const prompt = `Get the ${limit} most recent posts authored by @${clean} on X (use from:${clean}). Sort newest first, exclude replies unless they are by @${clean} themselves. Return ONLY a JSON array (no prose, no code fences) matching this shape: ${X_ITEM_SHAPE}.`;
-  const items = await callGrok({ prompt, tools: [{ type: "x_search" }] });
-  return items
-    .map(toXFeedItem)
-    .filter((i): i is FeedItem => i !== null)
-    .slice(0, limit);
-}
-
-export async function grokXMentions(handle: string, limit = 6): Promise<FeedItem[]> {
-  const clean = stripAt(handle);
-  const prompt = `Find the ${limit} most recent X posts that mention @${clean} (not posts authored by @${clean} — posts that reply to or tag them). Sort newest first. Return ONLY a JSON array (no prose, no code fences) matching this shape: ${X_ITEM_SHAPE}.`;
   const items = await callGrok({ prompt, tools: [{ type: "x_search" }] });
   return items
     .map(toXFeedItem)
@@ -220,83 +199,6 @@ export async function grokWebSearch(query: string, limit = 6): Promise<FeedItem[
     .map((g) => toWebFeedItem(g, "web"))
     .filter((i): i is FeedItem => i !== null)
     .slice(0, limit);
-}
-
-interface GrokAskResponseAnnotation {
-  type?: string;
-  url?: string;
-}
-
-async function callGrokRaw(
-  prompt: string,
-  tools: GrokTool[],
-): Promise<{ text: string; citations: string[] }> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) throw new Error("XAI_API_KEY is not set in .env.local");
-  const model = process.env.XAI_MODEL ?? "grok-4-fast-reasoning";
-
-  const res = await fetch(XAI_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      input: [{ role: "user", content: prompt }],
-      tools,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`xAI ${res.status}: ${body.slice(0, 400)}`);
-  }
-  const json = await res.json();
-  const content = json.output
-    ?.flatMap(
-      (o: { content?: Array<{ type?: string; text?: string; annotations?: GrokAskResponseAnnotation[] }> }) =>
-        o.content ?? [],
-    )
-    .find((c: { type?: string }) => c.type === "output_text");
-  const text = (content?.text ?? "").trim();
-  if (!text) throw new Error("xAI response missing output_text");
-  const citations = (content?.annotations ?? [])
-    .filter((a: GrokAskResponseAnnotation) => a.type === "url_citation" && a.url)
-    .map((a: GrokAskResponseAnnotation) => a.url as string);
-  return { text, citations: Array.from(new Set(citations)) };
-}
-
-export async function grokAsk(prompt: string): Promise<FeedItem[]> {
-  const safe = prompt.trim();
-  if (!safe) return [];
-  const composed = `${safe}
-
-Answer in a conversational but concise tone (2-4 short paragraphs, no headers). Use live information from the web and X when relevant. Cite sources at the end as a plain list of URLs if you used any.`;
-
-  const { text, citations } = await callGrokRaw(composed, [
-    { type: "x_search" },
-    { type: "web_search" },
-  ]);
-
-  const now = new Date();
-  return [
-    {
-      id: `grok-${now.getTime()}`,
-      author: {
-        name: "Grok",
-        handle: "grok",
-        avatarUrl: "https://api.dicebear.com/9.x/icons/svg?seed=grok&icon=sparkles",
-      },
-      content: text,
-      url: citations[0],
-      createdAt: now.toISOString(),
-      meta: {
-        isGrok: true,
-        prompt: safe,
-        citations,
-      },
-    },
-  ];
 }
 
 export async function grokNewsSearch(query: string, limit = 6): Promise<FeedItem[]> {
