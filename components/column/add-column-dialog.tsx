@@ -33,7 +33,16 @@ interface Props {
 export function AddColumnDialog({ open, onOpenChange, deckId }: Props) {
   const addColumn = useDeckStore((s) => s.addColumn);
   const autoFetchColumn = useDeckStore((s) => s.autoFetchColumn);
-  const types = useMemo(() => listColumnTypes(), []);
+  // Surface keyless plugins first; preserve manifest order within each group.
+  const types = useMemo(() => {
+    const all = listColumnTypes();
+    return [...all].sort((a, b) => {
+      const aGated = (a.capabilities?.requiresEnv?.length ?? 0) > 0 ? 1 : 0;
+      const bGated = (b.capabilities?.requiresEnv?.length ?? 0) > 0 ? 1 : 0;
+      if (aGated !== bGated) return aGated - bGated;
+      return all.indexOf(a) - all.indexOf(b);
+    });
+  }, []);
 
   const [selectedType, setSelectedType] = useState<AnyColumnType | null>(null);
   const [config, setConfig] = useState<Record<string, unknown>>({});

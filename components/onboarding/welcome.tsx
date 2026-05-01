@@ -19,8 +19,21 @@ interface Suggestion {
   hint: string;
 }
 
-// A handful of opinionated starting columns.
+// A handful of opinionated starting columns. Keyless suggestions are listed
+// first so the default pre-selection (indexes 0, 1) works without any setup.
 const SUGGESTIONS: Suggestion[] = [
+  {
+    typeId: "google-news",
+    title: "Global news · AI",
+    config: { query: "AI", hl: "", gl: "" },
+    hint: "Google News across all languages/countries",
+  },
+  {
+    typeId: "reddit",
+    title: "r/programming",
+    config: { subreddit: "programming", sortBy: "hot" },
+    hint: "Hot posts from r/programming",
+  },
   {
     typeId: "x-trending",
     title: "X · Trending in AI",
@@ -45,18 +58,6 @@ const SUGGESTIONS: Suggestion[] = [
     config: { query: "AI regulation" },
     hint: "Latest articles from major publications",
   },
-  {
-    typeId: "google-news",
-    title: "Global news · AI",
-    config: { query: "AI", hl: "", gl: "" },
-    hint: "Google News across all languages/countries",
-  },
-  {
-    typeId: "reddit",
-    title: "r/programming",
-    config: { subreddit: "programming", sortBy: "hot" },
-    hint: "Hot posts from r/programming",
-  },
 ];
 
 export function Onboarding() {
@@ -66,7 +67,8 @@ export function Onboarding() {
   const setActiveDeck = useDeckStore((s) => s.setActiveDeck);
 
   const [deckName, setDeckName] = useState("Home");
-  // Pre-select Grok Ask + Trending as sensible defaults
+  // Pre-select the first two suggestions — both are keyless so onboarding
+  // works out of the box.
   const [picked, setPicked] = useState<Set<number>>(() => new Set([0, 1]));
 
   const types = useMemo(() => {

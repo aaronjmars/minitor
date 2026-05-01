@@ -1,10 +1,13 @@
 "use server";
 
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { columns, decks, feedItems } from "@/lib/db/schema";
 import type { Column, Deck, FeedItem } from "@/lib/columns/types";
 import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
+import { ENV_KEYS, ENV_KEY_NAMES } from "@/lib/env-keys";
 
 export interface Snapshot {
   decks: Record<string, Deck>;
@@ -240,4 +243,94 @@ export async function persistFetchedItems(
   `);
 
   return { newCount, lastFetchedAt: fetchedAt.toISOString() };
+}
+
+// ---- env key management (Settings dialog) ---------------------------------
+
+const ENV_LOCAL_PATH = join(process.cwd(), ".env.local");
+
+export interface EnvKeyStatus {
+  key: string;
+  set: boolean;
+  /** Last 4 chars of the current value, for "ending in …abcd" hints. */
+  preview?: string;
+}
+
+/**
+ * Returns set/unset + a tail preview for each known key. The preview lets the
+ * UI hint at which key is currently configured ("ending in …abcd") without
+ * leaking the full secret.
+ */
+export async function getEnvKeysStatus(): Promise<EnvKeyStatus[]> {
+  return ENV_KEYS.map(({ key }) => {
+    const v = process.env[key] ?? "";
+    if (!v) return { key, set: false };
+    const preview = v.length >= 4 ? v.slice(-4) : v;
+    return { key, set: true, preview };
+  });
+}
+
+/**
+ * Writes `updates` into `.env.local` (creating it if missing) and mirrors the
+ * same change into `process.env` so the running fetchers pick it up without a
+ * manual restart. Empty-string values delete the key.
+ *
+ * Only keys in the `ENV_KEYS` allowlist are accepted — prevents the UI from
+ * being abused to write arbitrary env vars.
+ */
+export async function setEnvKeys(
+  updates: Record<string, string>,
+): Promise<void> {
+  const sanitized: Record<string, string> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    if (!ENV_KEY_NAMES.has(k)) continue;
+    if (typeof v !== "string") continue;
+    sanitized[k] = v;
+  }
+  if (Object.keys(sanitized).length === 0) return;
+
+  let raw = "";
+  try {
+    raw = await readFile(ENV_LOCAL_PATH, "utf8");
+  } catch {
+    // File may not exist yet — start from empty.
+  }
+
+  const lines = raw.length === 0 ? [] : raw.split(/\r?\n/);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=/);
+    const key = m?.[1];
+    if (key && key in sanitized) {
+      seen.add(key);
+      const v = sanitized[key];
+      if (v) result.push(`${key}=${escapeEnvValue(v)}`);
+      // empty value ⇒ drop the line
+    } else {
+      result.push(line);
+    }
+  }
+  for (const [k, v] of Object.entries(sanitized)) {
+    if (seen.has(k)) continue;
+    if (!v) continue;
+    if (result.length > 0 && result[result.length - 1] !== "") result.push("");
+    result.push(`${k}=${escapeEnvValue(v)}`);
+  }
+
+  let body = result.join("\n");
+  if (!body.endsWith("\n")) body += "\n";
+  await writeFile(ENV_LOCAL_PATH, body, { mode: 0o600 });
+
+  for (const [k, v] of Object.entries(sanitized)) {
+    if (v) process.env[k] = v;
+    else delete process.env[k];
+  }
+}
+
+function escapeEnvValue(v: string): string {
+  if (/[\s"'`$#\\]/.test(v)) {
+    return `"${v.replace(/(["\\$`])/g, "\\$1")}"`;
+  }
+  return v;
 }
