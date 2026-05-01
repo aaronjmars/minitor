@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 // Multi-chain Blockscout REST v2 client. Keyless by default. If
 // `BLOCKSCOUT_API_KEY` is set, it's appended as `?apikey=` to every request
@@ -256,7 +257,7 @@ export async function fetchAddressTransactions(
       author: {
         name: shortAddress(fromAddr || address),
         handle: fromAddr || address,
-        avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(fromAddr || address)}`,
+        avatarUrl: identiconUrl(fromAddr || address),
       },
       content: `${value.display} ${value.symbol}`,
       url: explorerTxUrl(chain, tx.hash),

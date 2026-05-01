@@ -3,6 +3,7 @@
 import { Heart, MessageCircle, Repeat2 } from "lucide-react";
 import type { ItemRendererProps } from "@/lib/columns/types";
 import { RelativeTime } from "@/components/relative-time";
+import { formatCompactCount } from "@/lib/utils";
 
 /**
  * Shared metadata shape for tweet-style feed items. The four X-* plugins all
@@ -14,14 +15,6 @@ export interface TweetMeta {
   retweets: number;
   replies: number;
   views?: number;
-}
-
-export function compact(n: number): string {
-  if (Math.abs(n) < 1000) return String(n);
-  if (Math.abs(n) < 1_000_000) {
-    return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}K`;
-  }
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
 }
 
 export function TweetItem({ item }: ItemRendererProps<TweetMeta>) {
@@ -61,15 +54,15 @@ export function TweetItem({ item }: ItemRendererProps<TweetMeta>) {
       <div className="mt-2.5 flex items-center gap-5 text-[11.5px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <MessageCircle className="size-3.5" />
-          <span className="tabular-nums">{compact(replies)}</span>
+          <span className="tabular-nums">{formatCompactCount(replies)}</span>
         </span>
         <span className="flex items-center gap-1">
           <Repeat2 className="size-3.5" />
-          <span className="tabular-nums">{compact(retweets)}</span>
+          <span className="tabular-nums">{formatCompactCount(retweets)}</span>
         </span>
         <span className="flex items-center gap-1">
           <Heart className="size-3.5" />
-          <span className="tabular-nums">{compact(likes)}</span>
+          <span className="tabular-nums">{formatCompactCount(likes)}</span>
         </span>
       </div>
     </a>

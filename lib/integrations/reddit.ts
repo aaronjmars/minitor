@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 const UA = "minitor/0.1 (https://github.com/anthropics/claude-code dashboard)";
 
@@ -99,7 +100,7 @@ function toFeedItem(c: RedditChild, fallbackSub: string): FeedItem {
     author: {
       name: author,
       handle: author,
-      avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(author)}`,
+      avatarUrl: identiconUrl(author),
     },
     content: d.title ?? "",
     url: permalink,

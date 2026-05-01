@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl, truncateText } from "@/lib/utils";
 
 // NewsNow public aggregator — used by TrendRadar / MindSpider.
 // No auth, but Cloudflare-fronted so it requires a real browser User-Agent.
@@ -78,16 +79,13 @@ export async function fetchNewsNow(
     const info = (it.extra?.info ?? "").trim();
     const hover = (it.extra?.hover ?? "").trim();
     const description = info && hover ? `${info} · ${hover}` : info || hover;
-    const trimmed =
-      description.length > 280
-        ? `${description.slice(0, 280).trimEnd()}…`
-        : description;
+    const trimmed = truncateText(description, 280);
     return {
       id: it.id ?? `${platform}-${idx}`,
       author: {
         name: platformLabel,
         handle: platform,
-        avatarUrl: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(platform)}`,
+        avatarUrl: identiconUrl(platform),
       },
       content: trimmed ? `${title}\n\n${trimmed}` : title,
       url,

@@ -12,6 +12,7 @@ import "server-only";
 import type { FeedItem } from "@/lib/columns/types";
 import { fetchFeed } from "@/lib/integrations/rss";
 import { grokWebSearch } from "@/lib/integrations/xai";
+import { identiconUrl } from "@/lib/utils";
 
 export interface SubstackMeta {
   publication: string;
@@ -183,7 +184,7 @@ function tagWithPublication(
       handle: publication,
       avatarUrl:
         item.author.avatarUrl ??
-        `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(publication)}`,
+        identiconUrl(publication),
     },
     meta: { publication, feedTitle, source },
   };

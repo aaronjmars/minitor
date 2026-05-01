@@ -1,4 +1,5 @@
 import type { FeedItem } from "@/lib/columns/types";
+import { identiconUrl } from "@/lib/utils";
 
 // Telegram has no public search API for channels without a bot token + MTProto,
 // and bot tokens can't read arbitrary channels. The reliable no-auth path is
@@ -250,7 +251,7 @@ export async function fetchTelegramChannelMentions(
         handle: p.channel,
         avatarUrl:
           p.avatarUrl ??
-          `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(p.channel)}`,
+          identiconUrl(p.channel),
       },
       content: p.textPlain || "(no text)",
       url: p.url,
