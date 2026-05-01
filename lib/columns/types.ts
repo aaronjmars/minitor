@@ -136,14 +136,6 @@ export function defineColumnServer<
   return server as unknown as AnyColumnServer;
 }
 
-// ---- Backwards-compat aliases (existing call sites) -------------------------
-// Old code imported `ColumnType` / `AnyColumnType`; these are now thin aliases
-// over `ColumnUI` / `AnyColumnUI`. New code should prefer the new names.
-export type ColumnType<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
-> = ColumnUI<TConfig>;
-export type AnyColumnType = AnyColumnUI;
-
 export interface Column {
   id: string;
   typeId: string;
