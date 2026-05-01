@@ -6,7 +6,6 @@ import "server-only";
 
 import {
   defineColumnServer,
-  type FeedItem,
   type ServerFetcher,
 } from "@/lib/columns/types";
 import {
@@ -28,19 +27,16 @@ const fetch: ServerFetcher<SubstackConfig, SubstackMeta> = async (
   // filtered to site:substack.com.
   if (handles.length === 0) {
     if (!query) return { items: [] };
-    const items = (await searchSubstackByKeyword(
-      query,
-      50,
-    )) as FeedItem<SubstackMeta>[];
+    const items = await searchSubstackByKeyword(query, 50);
     return sliceForPage(items, cursor);
   }
 
-  const items = (await searchSubstackPublications(
+  const items = await searchSubstackPublications(
     handles,
     config.query,
     20,
     100,
-  )) as FeedItem<SubstackMeta>[];
+  );
   return sliceForPage(items, cursor);
 };
 

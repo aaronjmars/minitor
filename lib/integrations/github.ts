@@ -1,4 +1,11 @@
 import type { FeedItem } from "@/lib/columns/types";
+import type { GHPRMeta } from "@/lib/columns/plugins/github-prs/plugin";
+
+// `GHPRMeta` is the renderer contract owned by the github-prs plugin; the
+// fetcher below produces `FeedItem<GHPRMeta>` so its meta lines up with what
+// the plugin's renderer reads. Re-exported under the legacy `GHPRItemMeta`
+// name in case external callers grew an import on it.
+export type { GHPRMeta as GHPRItemMeta };
 
 const API = "https://api.github.com";
 
@@ -247,19 +254,6 @@ async function fetchIssues(
   });
 }
 
-export interface GHPRItemMeta {
-  number: number;
-  state: "open" | "closed" | "merged";
-  isDraft: boolean;
-  additions?: number;
-  deletions?: number;
-  changedFiles?: number;
-  baseBranch: string;
-  headBranch: string;
-  commentsCount: number;
-  repo: string;
-  mergedAt?: string;
-}
 
 export async function fetchPullRequests(
   repo: string,
@@ -267,7 +261,7 @@ export async function fetchPullRequests(
   sort: "created" | "updated",
   limit: number,
   page = 1,
-): Promise<FeedItem<GHPRItemMeta>[]> {
+): Promise<FeedItem<GHPRMeta>[]> {
   const clean = repo.trim().replace(/^https?:\/\/github\.com\//, "");
   if (!/^[\w.-]+\/[\w.-]+$/.test(clean)) {
     throw new Error(`Invalid repo "${repo}". Use owner/repo (e.g. vercel/next.js).`);
@@ -285,7 +279,7 @@ export async function fetchPullRequests(
   return prs.slice(0, limit).map((p) => {
     const user = p.user?.login ?? "anonymous";
     const merged = p.state === "closed" && !!p.merged_at;
-    const display: GHPRItemMeta["state"] = merged
+    const display: GHPRMeta["state"] = merged
       ? "merged"
       : p.state === "closed"
         ? "closed"
@@ -319,7 +313,7 @@ export async function fetchPullRequests(
         repo: clean,
         mergedAt: p.merged_at ?? undefined,
       },
-    } satisfies FeedItem<GHPRItemMeta>;
+    } satisfies FeedItem<GHPRMeta>;
   });
 }
 
