@@ -21,7 +21,7 @@ export interface AppReviewMeta {
 const UA =
   "minitor/0.1 (+https://github.com/anthropics/claude-code)";
 
-// ---- App Store (iTunes RSS, keyless) ---------------------------------------
+// App Store (iTunes RSS, keyless)
 
 interface AppleEntryField {
   label?: string;
@@ -102,12 +102,11 @@ async function fetchAppStoreReviews(
     });
 }
 
-// ---- Google Play (batchexecute scrape, keyless) ----------------------------
-//
-// Google Play has no public reviews API. The batchexecute endpoint that
-// powers the Play Store web UI accepts an RPC id (UsvDTd) that returns the
-// most recent reviews for a package. The response is wrapped in `)]}'\n`,
-// then a JSON envelope whose third field is itself a stringified JSON array.
+// Google Play (batchexecute scrape, keyless).
+// Google Play has no public reviews API. The batchexecute endpoint that powers
+// the Play Store web UI accepts an RPC id (UsvDTd) that returns the most recent
+// reviews for a package. Response is wrapped in `)]}'\n`, then a JSON envelope
+// whose third field is itself a stringified JSON array.
 
 const PLAY_RPC = "UsvDTd";
 
@@ -226,8 +225,6 @@ async function fetchGooglePlayReviews(
   }
   return items;
 }
-
-// ---- Public entry point ----------------------------------------------------
 
 export async function fetchReviews(
   platform: AppReviewPlatform,

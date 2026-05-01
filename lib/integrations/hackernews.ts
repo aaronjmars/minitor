@@ -130,8 +130,6 @@ export async function fetchHackerNews(
   return items;
 }
 
-// ---- Mentions search ------------------------------------------------------
-
 export type HNSearchScope = "all" | "stories" | "comments";
 export type HNSearchSort = "relevance" | "date";
 
