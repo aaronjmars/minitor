@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -138,10 +138,16 @@ export function ColumnCard({ column }: { column: Column }) {
     }
   }
 
-  const style = {
+  // CSSProperties doesn't model `--*` custom properties, so widen with a
+  // template-literal index signature to type the beam-frame variables without
+  // resorting to `as never` on the keys.
+  const style: CSSProperties & Record<`--${string}`, string | number> = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 50 : undefined,
+    // consumed by the beam-frame CSS
+    "--beam-radius": "10px",
+    "--beam-duration": "2s",
   };
 
   const beamActive = isFetching || isAutoFetching;
@@ -151,12 +157,7 @@ export function ColumnCard({ column }: { column: Column }) {
       <div
         ref={setNodeRef}
         id={`column-${column.id}`}
-        style={{
-          ...style,
-          // consumed by the beam-frame CSS
-          ["--beam-radius" as never]: "10px",
-          ["--beam-duration" as never]: "2s",
-        }}
+        style={style}
         data-beam-active={beamActive ? "true" : "false"}
         data-beam-variant="fetch"
         className={cn(
