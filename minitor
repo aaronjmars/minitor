@@ -30,6 +30,32 @@ warn() { printf "  %s!%s %s\n" "$C_YELLOW" "$C_RESET" "$1" >&2; }
 die()  { printf "  %s✗%s %s\n" "$C_RED" "$C_RESET" "$1" >&2; exit 1; }
 muted(){ printf "  %s%s%s\n" "$C_DIM" "$1" "$C_RESET"; }
 
+# Run a command quietly — only show output if it fails.
+run_quiet() {
+  local log_file rc=0
+  log_file=$(mktemp -t minitor.XXXXXX)
+  if "$@" >"$log_file" 2>&1; then
+    rm -f "$log_file"
+  else
+    rc=$?
+    cat "$log_file" >&2
+    rm -f "$log_file"
+    return "$rc"
+  fi
+}
+
+# Print the dev server URL as a bold, clickable hyperlink (OSC 8).
+print_url_banner() {
+  local url="$1"
+  local link="$url"
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    link=$(printf '\033]8;;%s\033\\%s\033]8;;\033\\' "$url" "$url")
+  fi
+  printf "\n"
+  printf "  %sMinitor is ready →%s %s%s%s\n" "$C_BOLD" "$C_RESET" "$C_BOLD$C_GREEN" "$link" "$C_RESET"
+  printf "  %sCtrl-C to stop%s\n\n" "$C_DIM" "$C_RESET"
+}
+
 # ---- requirements ---------------------------------------------------------
 require_node() {
   if ! command -v node >/dev/null 2>&1; then
@@ -40,7 +66,6 @@ require_node() {
   if [ "$major" -lt 20 ]; then
     die "Node $major detected — Minitor needs Node 20 or newer."
   fi
-  ok "node $(node -v)"
 }
 
 # ---- pick a package manager ----------------------------------------------
@@ -55,15 +80,14 @@ pick_pkg_manager() {
   else
     PKG="npm"
   fi
-  ok "package manager: $PKG"
 }
 
 pkg_install() {
   case "$PKG" in
-    pnpm) pnpm install ;;
-    yarn) yarn install ;;
-    bun)  bun install ;;
-    *)    npm install ;;
+    pnpm) pnpm install --reporter=append-only --loglevel=error ;;
+    yarn) yarn install --silent ;;
+    bun)  bun install --silent ;;
+    *)    npm install --no-fund --no-audit --loglevel=error ;;
   esac
 }
 
@@ -90,36 +114,28 @@ ensure_deps() {
   if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock.json ] && [ ! -d node_modules/.pnpm ]; then
     step "Installing dependencies"
     pkg_install
-  else
-    if [ package.json -nt node_modules ] || [ package-lock.json -nt node_modules 2>/dev/null ]; then
-      step "Lockfile changed — reinstalling"
-      pkg_install
-    else
-      ok "dependencies already installed"
-    fi
+  elif [ package.json -nt node_modules ] || [ package-lock.json -nt node_modules 2>/dev/null ]; then
+    step "Lockfile changed — reinstalling dependencies"
+    pkg_install
   fi
 }
 
 ensure_env() {
   if [ ! -f .env.local ]; then
-    step "Creating .env.local"
     if [ -f .env.example ]; then
       cp .env.example .env.local
-      ok ".env.local created from .env.example"
       warn "Set XAI_API_KEY in .env.local for X / News / Web / Grok columns."
       muted "Other keys (Neynar, YouTube, GitHub) are optional — public fallbacks work."
     else
       : > .env.local
-      ok ".env.local created (empty)"
     fi
-  else
-    ok ".env.local present"
   fi
 }
 
 ensure_db() {
-  step "Running database migrations"
-  pkg_run db:migrate
+  if ! run_quiet pkg_run db:migrate; then
+    die "database migration failed"
+  fi
 }
 
 # ---- subcommands ----------------------------------------------------------
@@ -129,17 +145,16 @@ cmd_dev() {
   ensure_deps
   ensure_env
   ensure_db
-  step "Starting dev server"
-  muted "http://localhost:3000  (Ctrl-C to stop)"
+  print_url_banner "http://localhost:3000"
   exec_dev
 }
 
 exec_dev() {
   case "$PKG" in
-    pnpm) exec pnpm dev ;;
-    yarn) exec yarn dev ;;
-    bun)  exec bun run dev ;;
-    *)    exec npm run dev ;;
+    pnpm) exec pnpm -s dev ;;
+    yarn) exec yarn -s dev ;;
+    bun)  exec bun run --silent dev ;;
+    *)    exec npm run dev --silent ;;
   esac
 }
 
@@ -173,7 +188,8 @@ cmd_migrate() {
   pick_pkg_manager
   ensure_deps
   ensure_env
-  ensure_db
+  step "Running database migrations"
+  pkg_run db:migrate
 }
 
 cmd_doctor() {
