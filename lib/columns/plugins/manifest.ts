@@ -35,6 +35,7 @@ import { meta as playReviews } from "./play-reviews/plugin";
 import { meta as githubStars } from "./github-stars/plugin";
 import { meta as githubForks } from "./github-forks/plugin";
 import { meta as githubReleases } from "./github-releases/plugin";
+import { meta as bluesky } from "./bluesky/plugin";
 
 export const PLUGIN_METAS = [
   xSearch,
@@ -68,6 +69,7 @@ export const PLUGIN_METAS = [
   githubStars,
   githubForks,
   githubReleases,
+  bluesky,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
