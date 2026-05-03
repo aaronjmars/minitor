@@ -19,6 +19,7 @@ import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
 import { server as bing } from "@/lib/columns/plugins/bing/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
+import { server as mastodon } from "@/lib/columns/plugins/mastodon/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
 import { server as weiboHot } from "@/lib/columns/plugins/weibo-hot/server";
 import { server as zhihuHot } from "@/lib/columns/plugins/zhihu-hot/server";
@@ -53,6 +54,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "google-news": googleNews,
   bing,
   farcaster,
+  mastodon,
   youtube,
   "weibo-hot": weiboHot,
   "zhihu-hot": zhihuHot,

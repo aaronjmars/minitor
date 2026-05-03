@@ -15,6 +15,7 @@ import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
 import { meta as bing } from "./bing/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
+import { meta as mastodon } from "./mastodon/plugin";
 import { meta as youtube } from "./youtube/plugin";
 import { meta as weiboHot } from "./weibo-hot/plugin";
 import { meta as zhihuHot } from "./zhihu-hot/plugin";
@@ -49,6 +50,7 @@ export const PLUGIN_METAS = [
   googleNews,
   bing,
   farcaster,
+  mastodon,
   youtube,
   weiboHot,
   zhihuHot,
