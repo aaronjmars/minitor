@@ -43,6 +43,7 @@ import { column as playReviews } from "@/lib/columns/plugins/play-reviews/client
 import { column as githubStars } from "@/lib/columns/plugins/github-stars/client";
 import { column as githubForks } from "@/lib/columns/plugins/github-forks/client";
 import { column as githubReleases } from "@/lib/columns/plugins/github-releases/client";
+import { column as bluesky } from "@/lib/columns/plugins/bluesky/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
 // read `column.id` reliably from a server context anyway, so the id has to
@@ -79,6 +80,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "github-stars": githubStars,
   "github-forks": githubForks,
   "github-releases": githubReleases,
+  bluesky,
 };
 
 // Pre-built ordered list, indexed by manifest order. Built once at module init.

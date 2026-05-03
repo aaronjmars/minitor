@@ -18,12 +18,12 @@
 </p>
 
 > **Monitor the current thing. Your dashboard for the internet.**
-> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Reddit, Hacker News, GitHub (trending / issues / PRs / stars / forks / backlinks / search), Farcaster, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
+> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Bluesky, Reddit, Hacker News, GitHub (trending / issues / PRs / stars / forks / backlinks / search), Farcaster, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
 
 ### What it does
 
 - You name a deck. Minitor packs it with whatever you're watching.
-- 30 column types out of the box — social feeds, news, GitHub, app reviews, on-chain transactions, Chinese hot boards.
+- 32 column types out of the box — social feeds, news, GitHub, app reviews, on-chain transactions, Chinese hot boards.
 - Refresh per column or auto-fetch on creation. Load more pages 10 at a time.
 - ⌘K command palette over every deck, column, and action. Drag to reorder.
 - Local-first by default — embedded PGlite, no Postgres install needed.
@@ -58,7 +58,7 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 
 | Category | Columns |
 |----------|---------|
-| **Social — X / Reddit / HN / Farcaster** (5) | `x-search`, `x-trending`, `reddit`, `hacker-news`, `farcaster` |
+| **Social — X / Bluesky / Reddit / HN / Farcaster** (6) | `x-search`, `x-trending`, `bluesky`, `reddit`, `hacker-news`, `farcaster` |
 | **GitHub** (8) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks` |
 | **News & web** (4) | `bing` (Web search), `google-news`, `news-search`, `rss` |
 | **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
