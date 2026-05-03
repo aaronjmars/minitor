@@ -110,11 +110,25 @@ pkg_exec() {
 }
 
 # ---- bootstrap steps ------------------------------------------------------
+pkg_lockfile() {
+  case "$PKG" in
+    pnpm) printf "pnpm-lock.yaml" ;;
+    yarn) printf "yarn.lock" ;;
+    bun)  printf "bun.lockb" ;;
+    *)    printf "package-lock.json" ;;
+  esac
+}
+
 ensure_deps() {
-  if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock.json ] && [ ! -d node_modules/.pnpm ]; then
+  local lockfile
+  lockfile=$(pkg_lockfile)
+  if [ ! -d node_modules ]; then
     step "Installing dependencies"
     pkg_install
-  elif [ package.json -nt node_modules ] || [ package-lock.json -nt node_modules 2>/dev/null ]; then
+  elif [ package.json -nt node_modules ]; then
+    step "package.json changed — reinstalling dependencies"
+    pkg_install
+  elif [ -f "$lockfile" ] && [ "$lockfile" -nt node_modules ]; then
     step "Lockfile changed — reinstalling dependencies"
     pkg_install
   fi
