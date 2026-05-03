@@ -23,6 +23,7 @@ import { column as rss } from "@/lib/columns/plugins/rss/client";
 import { column as googleNews } from "@/lib/columns/plugins/google-news/client";
 import { column as bing } from "@/lib/columns/plugins/bing/client";
 import { column as farcaster } from "@/lib/columns/plugins/farcaster/client";
+import { column as mastodon } from "@/lib/columns/plugins/mastodon/client";
 import { column as youtube } from "@/lib/columns/plugins/youtube/client";
 import { column as weiboHot } from "@/lib/columns/plugins/weibo-hot/client";
 import { column as zhihuHot } from "@/lib/columns/plugins/zhihu-hot/client";
@@ -60,6 +61,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "google-news": googleNews,
   bing,
   farcaster,
+  mastodon,
   youtube,
   "weibo-hot": weiboHot,
   "zhihu-hot": zhihuHot,
