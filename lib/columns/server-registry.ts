@@ -38,6 +38,7 @@ import { server as appleReviews } from "@/lib/columns/plugins/apple-reviews/serv
 import { server as playReviews } from "@/lib/columns/plugins/play-reviews/server";
 import { server as githubStars } from "@/lib/columns/plugins/github-stars/server";
 import { server as githubForks } from "@/lib/columns/plugins/github-forks/server";
+import { server as githubReleases } from "@/lib/columns/plugins/github-releases/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "x-search": xSearch,
@@ -70,6 +71,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "play-reviews": playReviews,
   "github-stars": githubStars,
   "github-forks": githubForks,
+  "github-releases": githubReleases,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than
