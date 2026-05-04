@@ -37,6 +37,7 @@ import { meta as githubStars } from "./github-stars/plugin";
 import { meta as githubForks } from "./github-forks/plugin";
 import { meta as githubReleases } from "./github-releases/plugin";
 import { meta as bluesky } from "./bluesky/plugin";
+import { meta as lobsters } from "./lobsters/plugin";
 
 export const PLUGIN_METAS = [
   xSearch,
@@ -72,6 +73,7 @@ export const PLUGIN_METAS = [
   githubForks,
   githubReleases,
   bluesky,
+  lobsters,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
