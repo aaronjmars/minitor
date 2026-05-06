@@ -34,8 +34,12 @@ interface GammaMarket {
   outcomePrices?: string;
   volume?: string;
   volumeNum?: number;
-  volume24hr?: string;
-  volume24hrNum?: number;
+  // Gamma returns `volume24hr` as a *number* on live responses (despite older
+  // schema docs typing it as a string); the parallel `volume24hrNum` field is
+  // documented but in practice always null. Read the bare field with a typeof
+  // guard so we keep number values and ignore the legacy string form.
+  volume24hr?: number | string;
+  volume24hrNum?: number | null;
   liquidity?: string;
   liquidityNum?: number;
   active?: boolean;
@@ -196,7 +200,12 @@ function mapMarket(m: GammaMarket, now: number): FeedItem<PolymarketMeta> | null
     createdAt,
     meta: {
       outcomes,
-      volume24hUsd: typeof m.volume24hrNum === "number" ? m.volume24hrNum : 0,
+      volume24hUsd:
+        typeof m.volume24hr === "number"
+          ? m.volume24hr
+          : typeof m.volume24hrNum === "number"
+            ? m.volume24hrNum
+            : 0,
       liquidityUsd: typeof m.liquidityNum === "number" ? m.liquidityNum : 0,
       endDate: m.endDate,
       category: m.groupItemTitle,
