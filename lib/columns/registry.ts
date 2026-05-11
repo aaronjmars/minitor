@@ -51,6 +51,7 @@ import { column as stackOverflow } from "@/lib/columns/plugins/stack-overflow/cl
 import { column as huggingface } from "@/lib/columns/plugins/huggingface/client";
 import { column as arxiv } from "@/lib/columns/plugins/arxiv/client";
 import { column as devto } from "@/lib/columns/plugins/devto/client";
+import { column as githubActions } from "@/lib/columns/plugins/github-actions/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
 // read `column.id` reliably from a server context anyway, so the id has to
@@ -95,6 +96,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   huggingface,
   arxiv,
   devto,
+  "github-actions": githubActions,
 };
 
 // Pre-built ordered list, indexed by manifest order. Built once at module init.

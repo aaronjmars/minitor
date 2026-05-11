@@ -47,6 +47,7 @@ import { server as stackOverflow } from "@/lib/columns/plugins/stack-overflow/se
 import { server as huggingface } from "@/lib/columns/plugins/huggingface/server";
 import { server as arxiv } from "@/lib/columns/plugins/arxiv/server";
 import { server as devto } from "@/lib/columns/plugins/devto/server";
+import { server as githubActions } from "@/lib/columns/plugins/github-actions/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "x-search": xSearch,
@@ -88,6 +89,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   huggingface,
   arxiv,
   devto,
+  "github-actions": githubActions,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than

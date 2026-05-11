@@ -866,3 +866,186 @@ export async function fetchForks(
     nextCursor: items.length === limit ? String(page + 1) : undefined,
   };
 }
+
+// ---- Actions / workflow runs (used by the github-actions plugin) -----------
+
+export type GHActionStatus =
+  | "queued"
+  | "in_progress"
+  | "completed"
+  | "waiting"
+  | "pending"
+  | "requested";
+
+export type GHActionConclusion =
+  | "success"
+  | "failure"
+  | "cancelled"
+  | "neutral"
+  | "skipped"
+  | "timed_out"
+  | "action_required"
+  | "stale"
+  | "startup_failure";
+
+export interface GHActionRunMeta {
+  kind: "run";
+  repo: string;
+  runId: number;
+  runNumber: number;
+  workflowName: string;
+  workflowPath?: string;
+  status: GHActionStatus;
+  /** undefined while status != "completed" */
+  conclusion?: GHActionConclusion;
+  branch?: string;
+  event?: string;
+  sha?: string;
+  shortSha?: string;
+  /** "<owner>/<repo>" form; useful for the renderer when displaying the row */
+  fullRepo: string;
+  startedAt?: string;
+  /** Duration in ms; undefined when the run hasn't ended yet */
+  durationMs?: number;
+  /** Commit message first-line, when available */
+  commitMessage?: string;
+}
+
+interface GHWorkflowRun {
+  id: number;
+  name: string | null;
+  path?: string;
+  display_title?: string;
+  run_number: number;
+  event: string;
+  status: GHActionStatus;
+  conclusion: GHActionConclusion | null;
+  head_branch: string | null;
+  head_sha: string;
+  html_url: string;
+  run_started_at?: string;
+  created_at: string;
+  updated_at: string;
+  head_commit?: {
+    id?: string;
+    message?: string;
+    author?: { name?: string; email?: string };
+  } | null;
+  actor?: { login: string; avatar_url?: string } | null;
+  triggering_actor?: { login: string; avatar_url?: string } | null;
+}
+
+interface GHWorkflowRunsResponse {
+  total_count?: number;
+  workflow_runs?: GHWorkflowRun[];
+  message?: string;
+}
+
+/**
+ * Fetch recent workflow runs for a repository.
+ *
+ * - `workflow` (optional): filter to runs whose `name` or `path` equals this
+ *   value. Matched case-insensitively after a trim. We can't push the filter
+ *   into the API directly without knowing the numeric workflow_id, so it's
+ *   applied client-side over the requested page. That means a filter narrower
+ *   than the page can return fewer than `limit` rows even when more pages
+ *   exist upstream — the `hasMore` decision still uses raw upstream count so
+ *   "Load more" pages through correctly.
+ * - `branch` (optional): pushed as `branch=` query param. The API supports
+ *   exact branch matches only; partials don't work.
+ */
+export async function fetchWorkflowRuns(
+  repo: string,
+  workflow: string,
+  branch: string,
+  limit: number,
+  page = 1,
+): Promise<{ items: FeedItem<GHActionRunMeta>[]; hasMore: boolean }> {
+  const fullRepo = normalizeGitHubRepo(repo);
+  const params = new URLSearchParams({
+    per_page: String(Math.min(Math.max(limit, 1), 100)),
+    page: String(Math.max(page, 1)),
+  });
+  const trimmedBranch = branch.trim();
+  if (trimmedBranch) params.set("branch", trimmedBranch);
+  const url = `${API}/repos/${fullRepo}/actions/runs?${params}`;
+  const res = await fetch(url, { headers: headers(), cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`GitHub ${res.status}: ${body.slice(0, 200)}`);
+  }
+  const json = (await res.json()) as GHWorkflowRunsResponse;
+  if (json.message) throw new Error(json.message);
+  const raw = json.workflow_runs ?? [];
+  const wf = workflow.trim().toLowerCase();
+  const filtered = wf
+    ? raw.filter((r) => {
+        const name = (r.name ?? "").toLowerCase();
+        const path = (r.path ?? "").toLowerCase();
+        // Match the workflow name exactly, or against the filename portion of
+        // its path (".github/workflows/foo.yml" → "foo.yml"), so users can
+        // copy either the display label or the workflow filename.
+        const file = path.split("/").pop() ?? "";
+        return name === wf || file === wf;
+      })
+    : raw;
+
+  const items: FeedItem<GHActionRunMeta>[] = filtered.map((r) => {
+    const actor =
+      r.actor?.login ?? r.triggering_actor?.login ?? r.head_commit?.author?.name ?? "github";
+    const avatarUrl =
+      r.actor?.avatar_url ??
+      r.triggering_actor?.avatar_url ??
+      identiconUrl(actor);
+    const startedAt = r.run_started_at ?? r.created_at;
+    // The "completed" status carries an `updated_at` that reliably matches the
+    // run-finished moment; for in-flight runs we leave duration undefined
+    // rather than render a misleading partial-duration number.
+    const durationMs =
+      r.status === "completed"
+        ? Math.max(0, Date.parse(r.updated_at) - Date.parse(startedAt))
+        : undefined;
+    const commitMessage = (r.head_commit?.message ?? "").split("\n")[0]?.trim();
+    const title =
+      r.display_title?.trim() ||
+      commitMessage ||
+      r.name?.trim() ||
+      `Run #${r.run_number}`;
+    const sha = r.head_sha ?? "";
+    const shortSha = sha ? sha.slice(0, 7) : undefined;
+    const workflowName = (r.name ?? "").trim() || (r.path?.split("/").pop() ?? "workflow");
+    return {
+      id: `ghact-${r.id}`,
+      author: { name: actor, handle: actor, avatarUrl },
+      content: title,
+      url: r.html_url,
+      // Sort key: when status is "completed" we use updated_at (finished moment),
+      // otherwise we use the started timestamp so in-flight runs surface near
+      // the top of the column.
+      createdAt: r.status === "completed" ? r.updated_at : startedAt,
+      meta: {
+        kind: "run",
+        repo: fullRepo,
+        runId: r.id,
+        runNumber: r.run_number,
+        workflowName,
+        workflowPath: r.path,
+        status: r.status,
+        conclusion: r.conclusion ?? undefined,
+        branch: r.head_branch ?? undefined,
+        event: r.event,
+        sha,
+        shortSha,
+        fullRepo,
+        startedAt,
+        durationMs,
+        commitMessage,
+      },
+    } satisfies FeedItem<GHActionRunMeta>;
+  });
+
+  // Page-completeness uses raw upstream length, NOT the post-filter length,
+  // so workflow-name filtering doesn't prematurely terminate pagination.
+  const hasMore = raw.length >= Math.min(Math.max(limit, 1), 100);
+  return { items: items.slice(0, limit), hasMore };
+}
