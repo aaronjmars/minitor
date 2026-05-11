@@ -23,7 +23,7 @@
 ### What it does
 
 - You name a deck. Minitor packs it with whatever you're watching.
-- 39 column types out of the box — social feeds, news, GitHub, Hugging Face, arXiv, DEV.to, app reviews, on-chain transactions, prediction markets, Chinese hot boards.
+- 40 column types out of the box — social feeds, news, GitHub (including CI runs), Hugging Face, arXiv, DEV.to, app reviews, on-chain transactions, prediction markets, Chinese hot boards.
 - Refresh per column or auto-fetch on creation. Load more pages 10 at a time.
 - ⌘K command palette over every deck, column, and action. Drag to reorder.
 - Local-first by default — embedded PGlite, no Postgres install needed.
@@ -59,7 +59,7 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 | Category | Columns |
 |----------|---------|
 | **Social — X / Bluesky / Reddit / HN / Farcaster / Mastodon** (7) | `x-search`, `x-trending`, `bluesky`, `reddit`, `hacker-news`, `farcaster`, `mastodon` |
-| **GitHub** (8) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks` |
+| **GitHub** (9) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks`, `github-actions` |
 | **News & web** (7) | `bing` (Web search), `google-news`, `news-search`, `rss`, `lobsters`, `stack-overflow`, `devto` |
 | **AI / ML** (2) | `huggingface` (trending models, datasets, spaces), `arxiv` (CS / stat / math.OC papers) |
 | **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
