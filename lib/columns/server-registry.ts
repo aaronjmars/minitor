@@ -50,7 +50,6 @@ import { server as devto } from "@/lib/columns/plugins/devto/server";
 import { server as githubActions } from "@/lib/columns/plugins/github-actions/server";
 import { server as npm } from "@/lib/columns/plugins/npm/server";
 import { server as pypi } from "@/lib/columns/plugins/pypi/server";
-import { server as crates } from "@/lib/columns/plugins/crates/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "x-search": xSearch,
@@ -95,7 +94,6 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "github-actions": githubActions,
   npm,
   pypi,
-  crates,
 };
 
 // Parity check — runs once at server module init. Throws loudly rather than

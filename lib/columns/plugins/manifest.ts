@@ -46,7 +46,6 @@ import { meta as devto } from "./devto/plugin";
 import { meta as githubActions } from "./github-actions/plugin";
 import { meta as npm } from "./npm/plugin";
 import { meta as pypi } from "./pypi/plugin";
-import { meta as crates } from "./crates/plugin";
 
 export const PLUGIN_METAS = [
   xSearch,
@@ -91,7 +90,6 @@ export const PLUGIN_METAS = [
   githubActions,
   npm,
   pypi,
-  crates,
 ];
 
 export const REGISTERED_IDS: ReadonlySet<string> = new Set(
