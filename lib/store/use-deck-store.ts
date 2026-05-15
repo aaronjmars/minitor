@@ -11,12 +11,15 @@ import {
   createDeck as serverCreateDeck,
   deleteColumn as serverDeleteColumn,
   deleteDeck as serverDeleteDeck,
+  exportDeck as serverExportDeck,
+  importDeck as serverImportDeck,
   persistFetchedItems as serverPersistItems,
   renameColumn as serverRenameColumn,
   renameDeck as serverRenameDeck,
   reorderColumnsInDeck as serverReorderColumns,
   reorderDecks as serverReorderDecks,
   updateColumnConfig as serverUpdateConfig,
+  type ImportedDeckResult,
   type Snapshot,
 } from "@/app/actions";
 
@@ -53,6 +56,9 @@ interface DeckState {
     type: AnyColumnUI,
     ready?: Promise<void>,
   ) => Promise<void>;
+
+  exportDeck: (deckId: string) => Promise<string>;
+  importDeck: (json: string) => Promise<ImportedDeckResult>;
 }
 
 function fireAndLog<T>(label: string, p: Promise<T>) {
@@ -221,6 +227,38 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         return { autoFetchingIds: next };
       });
     }
+  },
+
+  exportDeck: (deckId) => serverExportDeck(deckId),
+
+  importDeck: async (json) => {
+    const result = await serverImportDeck(json);
+    set((s) => {
+      const cols = { ...s.columns };
+      for (const c of result.columns) {
+        cols[c.id] = {
+          id: c.id,
+          typeId: c.typeId,
+          title: c.title,
+          config: c.config,
+          items: [],
+        };
+      }
+      return {
+        decks: {
+          ...s.decks,
+          [result.deckId]: {
+            id: result.deckId,
+            name: result.deckName,
+            columnIds: result.columns.map((c) => c.id),
+          },
+        },
+        deckOrder: [...s.deckOrder, result.deckId],
+        activeDeckId: result.deckId,
+        columns: cols,
+      };
+    });
+    return result;
   },
 
   applyFetchedItems: async (columnId, items) => {
