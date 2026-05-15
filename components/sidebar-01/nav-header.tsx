@@ -1,8 +1,9 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Download, Plus, Search, Upload } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   CommandDialog,
@@ -21,14 +22,66 @@ import { focusColumn } from "@/components/sidebar-01/nav-decks";
 interface Props {
   onAddDeck: () => void;
   onAddColumn: () => void;
+  onImportDeck: () => void;
 }
 
-export function NavHeader({ onAddDeck, onAddColumn }: Props) {
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+  if (typeof document === "undefined") return false;
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+export function NavHeader({ onAddDeck, onAddColumn, onImportDeck }: Props) {
   const [open, setOpen] = useState(false);
   const decks = useDeckStore((s) => s.decks);
   const deckOrder = useDeckStore((s) => s.deckOrder);
   const columns = useDeckStore((s) => s.columns);
+  const activeDeckId = useDeckStore((s) => s.activeDeckId);
   const setActiveDeck = useDeckStore((s) => s.setActiveDeck);
+  const exportDeck = useDeckStore((s) => s.exportDeck);
+
+  const activeDeck = activeDeckId ? decks[activeDeckId] : null;
+
+  async function handleExportActiveDeck() {
+    if (!activeDeck) return;
+    try {
+      const json = await exportDeck(activeDeck.id);
+      const copied = await copyToClipboard(json);
+      if (copied) {
+        toast.success("Deck JSON copied", { description: activeDeck.name });
+      } else {
+        toast.error("Could not copy to clipboard", {
+          description:
+            "Your browser blocked clipboard access — paste the JSON manually from the console.",
+        });
+        console.log(json);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Export failed";
+      toast.error("Export failed", { description: msg });
+    }
+  }
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -116,6 +169,27 @@ export function NavHeader({ onAddDeck, onAddColumn }: Props) {
               }}
             >
               <Plus className="mr-2 size-4" /> Add column to current deck
+            </CommandItem>
+            {activeDeck ? (
+              <CommandItem
+                value={`export-deck-${activeDeck.name}`}
+                onSelect={() => {
+                  setOpen(false);
+                  void handleExportActiveDeck();
+                }}
+              >
+                <Download className="mr-2 size-4" /> Export current deck (copy
+                JSON)
+              </CommandItem>
+            ) : null}
+            <CommandItem
+              value="import-deck"
+              onSelect={() => {
+                setOpen(false);
+                onImportDeck();
+              }}
+            >
+              <Upload className="mr-2 size-4" /> Import deck from JSON
             </CommandItem>
           </CommandGroup>
 

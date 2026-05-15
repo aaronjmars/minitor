@@ -3,6 +3,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { columns, decks, feedItems } from "@/lib/db/schema";
 import type { Column, Deck, FeedItem } from "@/lib/columns/types";
@@ -183,6 +185,125 @@ export async function reorderColumnsInDeck(
     FROM (VALUES ${values}) AS v(id, position)
     WHERE columns.id = v.id
   `);
+}
+
+export const DECK_EXPORT_VERSION = 1;
+
+const importedColumnSchema = z.object({
+  typeId: z.string().min(1).max(128),
+  title: z.string().min(1).max(256),
+  config: z.record(z.string(), z.unknown()),
+});
+
+const importedDeckSchema = z.object({
+  version: z.literal(DECK_EXPORT_VERSION),
+  deckName: z.string().min(1).max(128),
+  exportedAt: z.string().optional(),
+  columns: z.array(importedColumnSchema).max(64),
+});
+
+export type DeckExport = z.infer<typeof importedDeckSchema>;
+
+/**
+ * Serialize a deck (name + ordered columns) to a JSON string suitable for
+ * sharing. Feed items are intentionally not included — they're fetched from
+ * upstream sources, not stored in user state. Imports recreate columns and
+ * trigger a fresh fetch on first view.
+ */
+export async function exportDeck(deckId: string): Promise<string> {
+  const [deck] = await db.select().from(decks).where(eq(decks.id, deckId));
+  if (!deck) {
+    throw new Error("Deck not found");
+  }
+  const cols = await db
+    .select({
+      typeId: columns.typeId,
+      title: columns.title,
+      config: columns.config,
+    })
+    .from(columns)
+    .where(eq(columns.deckId, deckId))
+    .orderBy(asc(columns.position), asc(columns.createdAt));
+
+  const payload: DeckExport = {
+    version: DECK_EXPORT_VERSION,
+    deckName: deck.name,
+    exportedAt: new Date().toISOString(),
+    columns: cols.map((c) => ({
+      typeId: c.typeId,
+      title: c.title,
+      config: (c.config as Record<string, unknown>) ?? {},
+    })),
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+export interface ImportedDeckColumn {
+  id: string;
+  typeId: string;
+  title: string;
+  config: Record<string, unknown>;
+}
+
+export interface ImportedDeckResult {
+  deckId: string;
+  deckName: string;
+  columns: ImportedDeckColumn[];
+}
+
+/**
+ * Validate `json` against the deck-export schema and create a new deck with
+ * the imported columns. Always inserts as a new deck (never merges into an
+ * existing one) and appends ` (imported)` to the name so the source deck
+ * remains untouched. Returns the IDs needed to update the client store
+ * without a full re-fetch.
+ */
+export async function importDeck(json: string): Promise<ImportedDeckResult> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error("Not valid JSON");
+  }
+  const result = importedDeckSchema.safeParse(parsed);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    const path = first.path.length > 0 ? first.path.join(".") : "<root>";
+    throw new Error(`Invalid deck JSON at ${path}: ${first.message}`);
+  }
+  const data = result.data;
+
+  const deckId = nanoid();
+  const deckName = `${data.deckName} (imported)`;
+  const created: ImportedDeckColumn[] = [];
+
+  await db.transaction(async (tx) => {
+    const [{ maxDeckPos }] = await tx
+      .select({ maxDeckPos: sql<number>`coalesce(max(${decks.position}), -1)` })
+      .from(decks);
+
+    await tx.insert(decks).values({
+      id: deckId,
+      name: deckName,
+      position: maxDeckPos + 1,
+    });
+
+    for (let i = 0; i < data.columns.length; i++) {
+      const c = data.columns[i];
+      const id = nanoid();
+      await tx.insert(columns).values({
+        id,
+        deckId,
+        typeId: c.typeId,
+        title: c.title,
+        config: c.config,
+        position: i,
+      });
+      created.push({ id, typeId: c.typeId, title: c.title, config: c.config });
+    }
+  });
+
+  return { deckId, deckName, columns: created };
 }
 
 export async function persistFetchedItems(
