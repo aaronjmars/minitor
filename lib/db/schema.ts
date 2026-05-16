@@ -23,6 +23,7 @@ export const columns = pgTable("columns", {
   typeId: text("type_id").notNull(),
   title: text("title").notNull(),
   config: jsonb("config").notNull().default({}),
+  alertKeywords: text("alert_keywords"),
   position: integer("position").notNull().default(0),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

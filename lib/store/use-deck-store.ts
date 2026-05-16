@@ -18,6 +18,7 @@ import {
   renameDeck as serverRenameDeck,
   reorderColumnsInDeck as serverReorderColumns,
   reorderDecks as serverReorderDecks,
+  updateColumnAlertKeywords as serverUpdateAlertKeywords,
   updateColumnConfig as serverUpdateConfig,
   type ImportedDeckResult,
   type Snapshot,
@@ -46,6 +47,7 @@ interface DeckState {
     config: Record<string, unknown>,
   ) => { id: string; ready: Promise<void> };
   updateColumnConfig: (columnId: string, config: Record<string, unknown>) => void;
+  updateAlertKeywords: (columnId: string, alertKeywords: string) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
@@ -160,6 +162,27 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
     fireAndLog("updateColumnConfig", serverUpdateConfig(columnId, config));
   },
 
+  updateAlertKeywords: (columnId, alertKeywords) => {
+    const next = alertKeywords.slice(0, 512);
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: {
+            ...col,
+            alertKeywords: next.length === 0 ? undefined : next,
+          },
+        },
+      };
+    });
+    fireAndLog(
+      "updateColumnAlertKeywords",
+      serverUpdateAlertKeywords(columnId, next),
+    );
+  },
+
   renameColumn: (columnId, title) => {
     set((s) => {
       const col = s.columns[columnId];
@@ -241,6 +264,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
           typeId: c.typeId,
           title: c.title,
           config: c.config,
+          alertKeywords: c.alertKeywords,
           items: [],
         };
       }

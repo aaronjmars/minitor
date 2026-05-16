@@ -1,0 +1,51 @@
+import type { FeedItem } from "./types";
+
+/**
+ * Parse a comma/semicolon/space-separated alert-keyword string into a normalised
+ * list of lowercase terms. Empty strings and whitespace-only segments are
+ * dropped. Terms longer than 64 characters are dropped (defensive — no operator
+ * intentionally writes a 64-char keyword, and unbounded lengths would slow
+ * substring scans without changing match semantics). At most 16 terms are
+ * retained per column.
+ */
+export function parseAlertKeywords(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const segment of raw.split(/[,;]+/)) {
+    for (const term of segment.split(/\s+/)) {
+      const trimmed = term.trim().toLowerCase();
+      if (trimmed.length === 0) continue;
+      if (trimmed.length > 64) continue;
+      if (seen.has(trimmed)) continue;
+      seen.add(trimmed);
+      out.push(trimmed);
+      if (out.length >= 16) return out;
+    }
+  }
+  return out;
+}
+
+/**
+ * Returns true when any of the parsed `terms` appears as a substring in the
+ * item's author, content, or URL. Comparison is case-insensitive — `terms` is
+ * already lowercased by `parseAlertKeywords`.
+ */
+export function itemMatchesAlertKeywords(
+  item: FeedItem,
+  terms: string[],
+): boolean {
+  if (terms.length === 0) return false;
+  const haystack = [
+    item.content,
+    item.author?.name ?? "",
+    item.author?.handle ?? "",
+    item.url ?? "",
+  ]
+    .join("\n")
+    .toLowerCase();
+  for (const t of terms) {
+    if (haystack.includes(t)) return true;
+  }
+  return false;
+}

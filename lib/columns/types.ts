@@ -141,6 +141,13 @@ export interface Column {
   typeId: string;
   title: string;
   config: Record<string, unknown>;
+  /**
+   * Optional comma/semicolon/space-separated list of alert keywords. When set,
+   * matching feed items get a yellow highlight ring and the column header
+   * shows a badge with the match count. Purely client-side — never sent to
+   * server fetchers, so it works with every plugin without per-plugin opt-in.
+   */
+  alertKeywords?: string;
   items: FeedItem[];
   lastFetchedAt?: string;
 }
