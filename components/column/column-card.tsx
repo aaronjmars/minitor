@@ -3,7 +3,9 @@
 import { useState, type CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMemo } from "react";
 import {
+  Bell,
   GripVertical,
   Loader2,
   MoreHorizontal,
@@ -31,6 +33,10 @@ import { callColumnApi } from "@/lib/columns/api-client";
 import { useDeckStore } from "@/lib/store/use-deck-store";
 import { useMinDuration } from "@/hooks/use-min-duration";
 import { BEAM_MIN_DURATION_MS } from "@/lib/columns/constants";
+import {
+  itemMatchesAlertKeywords,
+  parseAlertKeywords,
+} from "@/lib/columns/keyword-match";
 import type { Column } from "@/lib/columns/types";
 import { ConfigureColumnDialog } from "@/components/column/configure-column-dialog";
 import { RenameDialog } from "@/components/dialogs/rename-dialog";
@@ -83,6 +89,20 @@ export function ColumnCard({ column }: { column: Column }) {
   const ItemRenderer = type.ItemRenderer;
 
   const paginated = type?.capabilities?.paginated === true;
+
+  const alertTerms = useMemo(
+    () => parseAlertKeywords(column.alertKeywords),
+    [column.alertKeywords],
+  );
+  const matchedItemIds = useMemo(() => {
+    if (alertTerms.length === 0) return new Set<string>();
+    const out = new Set<string>();
+    for (const it of column.items) {
+      if (itemMatchesAlertKeywords(it, alertTerms)) out.add(it.id);
+    }
+    return out;
+  }, [alertTerms, column.items]);
+  const matchCount = matchedItemIds.size;
 
   async function onRefresh() {
     if (!type) return;
@@ -211,6 +231,20 @@ export function ColumnCard({ column }: { column: Column }) {
               )}
             </div>
           </div>
+          {matchCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger
+                aria-label={`${matchCount} item${matchCount === 1 ? "" : "s"} matched alert keywords`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-yellow-400/15 px-2 py-0.5 text-[11px] font-medium text-yellow-700 ring-1 ring-yellow-400/40 dark:text-yellow-300"
+              >
+                <Bell className="size-3" strokeWidth={2.5} />
+                <span className="tabular-nums">{matchCount}</span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {matchCount} match{matchCount === 1 ? "" : "es"} for: {alertTerms.join(", ")}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger
               onClick={onRefresh}
@@ -261,9 +295,19 @@ export function ColumnCard({ column }: { column: Column }) {
             )
           ) : (
             <div>
-              {column.items.map((item) => (
-                <ItemRenderer key={item.id} item={item} />
-              ))}
+              {column.items.map((item) =>
+                matchedItemIds.has(item.id) ? (
+                  <div
+                    key={item.id}
+                    data-alert-match="true"
+                    className="relative bg-yellow-50/40 ring-1 ring-inset ring-yellow-400/50 dark:bg-yellow-400/[0.06]"
+                  >
+                    <ItemRenderer item={item} />
+                  </div>
+                ) : (
+                  <ItemRenderer key={item.id} item={item} />
+                ),
+              )}
               {paginated && nextCursor !== null && (
                 <button
                   type="button"

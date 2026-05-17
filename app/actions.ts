@@ -79,6 +79,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       typeId: c.typeId,
       title: c.title,
       config: (c.config as Record<string, unknown>) ?? {},
+      alertKeywords: c.alertKeywords ?? undefined,
       items: [],
       lastFetchedAt: c.lastFetchedAt ? c.lastFetchedAt.toISOString() : undefined,
     };
@@ -162,6 +163,22 @@ export async function updateColumnConfig(
   await db.update(columns).set({ config }).where(eq(columns.id, id));
 }
 
+/**
+ * Persist a column's alert-keyword string. Pass an empty string to clear.
+ * Validated to 512 chars to bound storage; longer inputs are truncated so the
+ * UI never silently rejects a paste.
+ */
+export async function updateColumnAlertKeywords(
+  id: string,
+  alertKeywords: string,
+): Promise<void> {
+  const trimmed = alertKeywords.slice(0, 512);
+  await db
+    .update(columns)
+    .set({ alertKeywords: trimmed.length === 0 ? null : trimmed })
+    .where(eq(columns.id, id));
+}
+
 export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
@@ -193,6 +210,7 @@ const importedColumnSchema = z.object({
   typeId: z.string().min(1).max(128),
   title: z.string().min(1).max(256),
   config: z.record(z.string(), z.unknown()),
+  alertKeywords: z.string().max(512).optional(),
 });
 
 const importedDeckSchema = z.object({
@@ -220,6 +238,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       typeId: columns.typeId,
       title: columns.title,
       config: columns.config,
+      alertKeywords: columns.alertKeywords,
     })
     .from(columns)
     .where(eq(columns.deckId, deckId))
@@ -233,6 +252,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       typeId: c.typeId,
       title: c.title,
       config: (c.config as Record<string, unknown>) ?? {},
+      ...(c.alertKeywords ? { alertKeywords: c.alertKeywords } : {}),
     })),
   };
   return JSON.stringify(payload, null, 2);
@@ -243,6 +263,7 @@ export interface ImportedDeckColumn {
   typeId: string;
   title: string;
   config: Record<string, unknown>;
+  alertKeywords?: string;
 }
 
 export interface ImportedDeckResult {
@@ -291,15 +312,24 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
     for (let i = 0; i < data.columns.length; i++) {
       const c = data.columns[i];
       const id = nanoid();
+      const alertKeywords =
+        c.alertKeywords && c.alertKeywords.length > 0 ? c.alertKeywords : null;
       await tx.insert(columns).values({
         id,
         deckId,
         typeId: c.typeId,
         title: c.title,
         config: c.config,
+        alertKeywords,
         position: i,
       });
-      created.push({ id, typeId: c.typeId, title: c.title, config: c.config });
+      created.push({
+        id,
+        typeId: c.typeId,
+        title: c.title,
+        config: c.config,
+        ...(alertKeywords ? { alertKeywords } : {}),
+      });
     }
   });
 
