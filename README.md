@@ -18,12 +18,12 @@
 </p>
 
 > **Monitor the current thing. Your dashboard for the internet.**
-> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Bluesky, Reddit, Hacker News, Lobsters, Stack Overflow, DEV.to, npm + PyPI + crates.io packages, Hugging Face (models / datasets / spaces), arXiv (CS / stat / math.OC papers), GitHub (trending / issues / PRs / stars / forks / backlinks / search / releases / Actions), Farcaster, Mastodon, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, Polymarket prediction markets, CoinGecko crypto trending + prices, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
+> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Bluesky, Reddit, Hacker News, Lobsters, Stack Overflow, DEV.to, npm + PyPI + crates.io packages, Hugging Face (models / datasets / spaces), arXiv (CS / stat / math.OC papers), GitHub (trending / issues / PRs / stars / forks / backlinks / search / releases / Actions / Discussions), Farcaster, Mastodon, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, Polymarket prediction markets, CoinGecko crypto trending + prices, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
 
 ### What it does
 
 - You name a deck. Minitor packs it with whatever you're watching.
-- 45 column types out of the box — social feeds, news, GitHub (including CI runs), Hugging Face, arXiv, DEV.to, Product Hunt, npm + PyPI + crates.io packages, app reviews, on-chain transactions, prediction markets, CoinGecko prices, Chinese hot boards.
+- 46 column types out of the box — social feeds, news, GitHub (including CI runs and Discussions), Hugging Face, arXiv, DEV.to, Product Hunt, npm + PyPI + crates.io packages, app reviews, on-chain transactions, prediction markets, CoinGecko prices, Chinese hot boards.
 - Refresh per column or auto-fetch on creation. Load more pages 10 at a time.
 - ⌘K command palette over every deck, column, and action. Drag to reorder.
 - Local-first by default — embedded PGlite, no Postgres install needed.
@@ -59,7 +59,7 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 | Category | Columns |
 |----------|---------|
 | **Social — X / Bluesky / Reddit / HN / Farcaster / Mastodon** (7) | `x-search`, `x-trending`, `bluesky`, `reddit`, `hacker-news`, `farcaster`, `mastodon` |
-| **GitHub** (9) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks`, `github-actions` |
+| **GitHub** (10) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-stars`, `github-forks`, `github-search`, `github-backlinks`, `github-actions`, `github-discussions` |
 | **News & web** (11) | `bing` (Web search), `google-news`, `news-search`, `rss`, `lobsters`, `stack-overflow`, `devto`, `npm`, `pypi`, `crates`, `producthunt` |
 | **AI / ML** (2) | `huggingface` (trending models, datasets, spaces), `arxiv` (CS / stat / math.OC papers) |
 | **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
@@ -69,7 +69,7 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 
 Full plugin manifest: [`lib/columns/plugins/manifest.ts`](lib/columns/plugins/manifest.ts). Add a new source by copying [`lib/columns/plugins/_template/`](lib/columns/plugins/_template/) — see [`lib/columns/README.md`](lib/columns/README.md) for the full contract.
 
-**Keys:** `XAI_API_KEY` for `x-*`, `news-search`, `linkedin`, `facebook`, `instagram` (and Substack's keyword-only mode). Optional `NEYNAR_API_KEY` for Farcaster (demo-key fallback works), optional `YOUTUBE_API_KEY` for YouTube *search* (channel / playlist Atom feeds are keyless), optional `COINGECKO_DEMO_API_KEY` for higher CoinGecko rate limits (keyless mode works fine for low-traffic decks). Everything else runs without keys.
+**Keys:** `XAI_API_KEY` for `x-*`, `news-search`, `linkedin`, `facebook`, `instagram` (and Substack's keyword-only mode). Optional `NEYNAR_API_KEY` for Farcaster (demo-key fallback works), optional `YOUTUBE_API_KEY` for YouTube *search* (channel / playlist Atom feeds are keyless), optional `GITHUB_TOKEN` for every `github-*` column (60 req/hr keyless → 5000 req/hr with a token; `github-discussions` follows the same rule), optional `COINGECKO_DEMO_API_KEY` for higher CoinGecko rate limits (keyless mode works fine for low-traffic decks). Everything else runs without keys.
 
 ### Features
 
