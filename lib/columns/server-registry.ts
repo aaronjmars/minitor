@@ -52,6 +52,7 @@ import { server as npm } from "@/lib/columns/plugins/npm/server";
 import { server as pypi } from "@/lib/columns/plugins/pypi/server";
 import { server as crates } from "@/lib/columns/plugins/crates/server";
 import { server as producthunt } from "@/lib/columns/plugins/producthunt/server";
+import { server as coingecko } from "@/lib/columns/plugins/coingecko/server";
 import { server as githubDiscussions } from "@/lib/columns/plugins/github-discussions/server";
 
 const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
@@ -99,6 +100,7 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   pypi,
   crates,
   producthunt,
+  coingecko,
   "github-discussions": githubDiscussions,
 };
 

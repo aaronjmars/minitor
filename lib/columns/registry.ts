@@ -56,6 +56,7 @@ import { column as npm } from "@/lib/columns/plugins/npm/client";
 import { column as pypi } from "@/lib/columns/plugins/pypi/client";
 import { column as crates } from "@/lib/columns/plugins/crates/client";
 import { column as producthunt } from "@/lib/columns/plugins/producthunt/client";
+import { column as coingecko } from "@/lib/columns/plugins/coingecko/client";
 import { column as githubDiscussions } from "@/lib/columns/plugins/github-discussions/client";
 
 // Keyed by id rather than positional — "use client" boundary means we can't
@@ -106,6 +107,7 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   pypi,
   crates,
   producthunt,
+  coingecko,
   "github-discussions": githubDiscussions,
 };
 
