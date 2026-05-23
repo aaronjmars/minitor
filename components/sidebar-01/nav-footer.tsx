@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Settings } from "lucide-react";
+import Link from "next/link";
+import { LayoutTemplate, Plus, Settings } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -35,6 +36,15 @@ export function NavFooter() {
     <>
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <Link
+              href="/gallery"
+              className="flex h-8 items-center gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <LayoutTemplate className="size-4" />
+              <span>Browse deck gallery</span>
+            </Link>
+          </SidebarMenuItem>
           <SidebarMenuItem className="flex items-center gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger className="flex h-8 flex-1 items-center justify-between gap-2 rounded-md px-2 text-left text-sm text-sidebar-foreground/80 outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-foreground">
