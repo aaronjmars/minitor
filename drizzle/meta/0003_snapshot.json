@@ -1,6 +1,6 @@
 {
-  "id": "5a8c4f12-7d3a-4b21-8c4e-9f1e3b5d2002",
-  "prevId": "9b3e3a7a-1c1f-4a4d-9b89-2f7a7f9a3001",
+  "id": "5c2d8f4b-7e6a-4c2d-8b1f-3a9d6e2f7002",
+  "prevId": "5a8c4f12-7d3a-4b21-8c4e-9f1e3b5d2002",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -70,6 +70,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "notify_webhook_url": {
+          "name": "notify_webhook_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},

@@ -21,6 +21,8 @@ import {
   updateColumnAlertKeywords as serverUpdateAlertKeywords,
   updateColumnConfig as serverUpdateConfig,
   updateColumnWebhookUrl as serverUpdateWebhookUrl,
+  updateColumnRefreshInterval as serverUpdateRefreshInterval,
+  isAllowedRefreshInterval,
   type ImportedDeckResult,
   type Snapshot,
 } from "@/app/actions";
@@ -50,6 +52,10 @@ interface DeckState {
   updateColumnConfig: (columnId: string, config: Record<string, unknown>) => void;
   updateAlertKeywords: (columnId: string, alertKeywords: string) => void;
   updateWebhookUrl: (columnId: string, webhookUrl: string) => void;
+  updateRefreshInterval: (
+    columnId: string,
+    refreshIntervalSeconds: number | null,
+  ) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
@@ -203,6 +209,32 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
     fireAndLog("updateColumnWebhookUrl", serverUpdateWebhookUrl(columnId, next));
   },
 
+  updateRefreshInterval: (columnId, refreshIntervalSeconds) => {
+    // Mirror the server-side allowlist locally so the optimistic state can't
+    // drift from what was actually persisted. Anything outside the allowlist
+    // collapses to manual-only (undefined / null on the wire).
+    const next = isAllowedRefreshInterval(refreshIntervalSeconds)
+      ? refreshIntervalSeconds
+      : null;
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: {
+            ...col,
+            refreshIntervalSeconds: next ?? undefined,
+          },
+        },
+      };
+    });
+    fireAndLog(
+      "updateColumnRefreshInterval",
+      serverUpdateRefreshInterval(columnId, next),
+    );
+  },
+
   renameColumn: (columnId, title) => {
     set((s) => {
       const col = s.columns[columnId];
@@ -286,6 +318,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
           config: c.config,
           alertKeywords: c.alertKeywords,
           notifyWebhookUrl: c.notifyWebhookUrl,
+          refreshIntervalSeconds: c.refreshIntervalSeconds,
           items: [],
         };
       }

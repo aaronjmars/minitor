@@ -156,6 +156,14 @@ export interface Column {
    * deck exports / share links — see `exportDeck`.
    */
   notifyWebhookUrl?: string;
+  /**
+   * Optional auto-refresh cadence in seconds. When set, the column re-fetches
+   * on that interval (paused while the tab is hidden so background tabs don't
+   * burn upstream rate limits). When null/undefined, the column only refreshes
+   * on mount and on manual click. Allowed values are whitelisted server-side
+   * to {60, 300, 900, 3600}; any other input is treated as manual-only.
+   */
+  refreshIntervalSeconds?: number;
   items: FeedItem[];
   lastFetchedAt?: string;
 }

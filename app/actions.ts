@@ -91,6 +91,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       config: (c.config as Record<string, unknown>) ?? {},
       alertKeywords: c.alertKeywords ?? undefined,
       notifyWebhookUrl: c.notifyWebhookUrl ?? undefined,
+      refreshIntervalSeconds: c.refreshIntervalSeconds ?? undefined,
       items: [],
       lastFetchedAt: c.lastFetchedAt ? c.lastFetchedAt.toISOString() : undefined,
     };
@@ -218,6 +219,41 @@ export async function updateColumnWebhookUrl(
     .where(eq(columns.id, id));
 }
 
+/**
+ * Whitelist of refresh-interval cadences (seconds). Anything outside this set
+ * is rejected server-side and persisted as NULL (manual-only). Keeping the
+ * allowlist short prevents the UI from being used to schedule pathological
+ * sub-minute polling that would hammer upstream rate limits.
+ */
+export const REFRESH_INTERVAL_OPTIONS = [60, 300, 900, 3600] as const;
+export type RefreshIntervalSeconds = (typeof REFRESH_INTERVAL_OPTIONS)[number];
+
+const REFRESH_INTERVAL_SET = new Set<number>(REFRESH_INTERVAL_OPTIONS);
+
+export function isAllowedRefreshInterval(
+  value: unknown,
+): value is RefreshIntervalSeconds {
+  return typeof value === "number" && REFRESH_INTERVAL_SET.has(value);
+}
+
+/**
+ * Persist a column's auto-refresh cadence. Pass `null` to clear (manual-only).
+ * Non-allowlisted values are coerced to `null` server-side — never trust the
+ * client to enforce the cadence floor.
+ */
+export async function updateColumnRefreshInterval(
+  id: string,
+  refreshIntervalSeconds: number | null,
+): Promise<void> {
+  const next = isAllowedRefreshInterval(refreshIntervalSeconds)
+    ? refreshIntervalSeconds
+    : null;
+  await db
+    .update(columns)
+    .set({ refreshIntervalSeconds: next })
+    .where(eq(columns.id, id));
+}
+
 export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
@@ -254,6 +290,10 @@ const importedColumnSchema = z.object({
   // webhook, but `exportDeck` deliberately never emits it (see below). Any value
   // present on import is re-validated through the SSRF guard before persisting.
   notifyWebhookUrl: z.string().max(WEBHOOK_URL_MAX).optional(),
+  // Optional auto-refresh cadence. Unknown / non-allowlisted values are dropped
+  // in importDeck so a tampered or hand-edited payload can't smuggle a 1-second
+  // poll past the server-side guard.
+  refreshIntervalSeconds: z.number().int().positive().optional(),
 });
 
 const importedDeckSchema = z.object({
@@ -282,6 +322,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       title: columns.title,
       config: columns.config,
       alertKeywords: columns.alertKeywords,
+      refreshIntervalSeconds: columns.refreshIntervalSeconds,
     })
     .from(columns)
     .where(eq(columns.deckId, deckId))
@@ -301,6 +342,9 @@ export async function exportDeck(deckId: string): Promise<string> {
       title: c.title,
       config: (c.config as Record<string, unknown>) ?? {},
       ...(c.alertKeywords ? { alertKeywords: c.alertKeywords } : {}),
+      ...(isAllowedRefreshInterval(c.refreshIntervalSeconds)
+        ? { refreshIntervalSeconds: c.refreshIntervalSeconds }
+        : {}),
     })),
   };
   return JSON.stringify(payload, null, 2);
@@ -313,6 +357,7 @@ export interface ImportedDeckColumn {
   config: Record<string, unknown>;
   alertKeywords?: string;
   notifyWebhookUrl?: string;
+  refreshIntervalSeconds?: number;
 }
 
 export interface ImportedDeckResult {
@@ -371,6 +416,11 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
         const check = validateWebhookUrl(c.notifyWebhookUrl);
         if (check.ok) notifyWebhookUrl = check.url;
       }
+      const refreshIntervalSeconds = isAllowedRefreshInterval(
+        c.refreshIntervalSeconds,
+      )
+        ? c.refreshIntervalSeconds
+        : null;
       await tx.insert(columns).values({
         id,
         deckId,
@@ -379,6 +429,7 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
         config: c.config,
         alertKeywords,
         notifyWebhookUrl,
+        refreshIntervalSeconds,
         position: i,
       });
       created.push({
@@ -388,6 +439,7 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
         config: c.config,
         ...(alertKeywords ? { alertKeywords } : {}),
         ...(notifyWebhookUrl ? { notifyWebhookUrl } : {}),
+        ...(refreshIntervalSeconds !== null ? { refreshIntervalSeconds } : {}),
       });
     }
   });
