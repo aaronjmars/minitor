@@ -23,7 +23,10 @@ import {
   updateColumnWebhookUrl as serverUpdateWebhookUrl,
   updateColumnRefreshInterval as serverUpdateRefreshInterval,
   updateColumnFilters as serverUpdateFilters,
+  loadDeckSnapshots as serverLoadDeckSnapshots,
+  restoreDeckSnapshot as serverRestoreDeckSnapshot,
   isAllowedRefreshInterval,
+  type DeckSnapshotMeta,
   type ImportedDeckResult,
   type Snapshot,
 } from "@/app/actions";
@@ -75,6 +78,45 @@ interface DeckState {
 
   exportDeck: (deckId: string) => Promise<string>;
   importDeck: (json: string) => Promise<ImportedDeckResult>;
+  loadDeckSnapshots: (deckId: string) => Promise<DeckSnapshotMeta[]>;
+  restoreDeckSnapshot: (snapshotId: number) => Promise<ImportedDeckResult>;
+}
+
+// Build the store patch that lands a freshly imported/restored deck (a new deck
+// plus its columns) and activates it. Shared by importDeck and
+// restoreDeckSnapshot since both create a new deck from a DeckExport payload.
+function importedDeckPatch(
+  s: DeckState,
+  result: ImportedDeckResult,
+): Partial<DeckState> {
+  const cols = { ...s.columns };
+  for (const c of result.columns) {
+    cols[c.id] = {
+      id: c.id,
+      typeId: c.typeId,
+      title: c.title,
+      config: c.config,
+      alertKeywords: c.alertKeywords,
+      notifyWebhookUrl: c.notifyWebhookUrl,
+      refreshIntervalSeconds: c.refreshIntervalSeconds,
+      filterKeywords: c.filterKeywords,
+      excludeKeywords: c.excludeKeywords,
+      items: [],
+    };
+  }
+  return {
+    decks: {
+      ...s.decks,
+      [result.deckId]: {
+        id: result.deckId,
+        name: result.deckName,
+        columnIds: result.columns.map((c) => c.id),
+      },
+    },
+    deckOrder: [...s.deckOrder, result.deckId],
+    activeDeckId: result.deckId,
+    columns: cols,
+  };
 }
 
 function fireAndLog<T>(label: string, p: Promise<T>) {
@@ -337,36 +379,15 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
 
   importDeck: async (json) => {
     const result = await serverImportDeck(json);
-    set((s) => {
-      const cols = { ...s.columns };
-      for (const c of result.columns) {
-        cols[c.id] = {
-          id: c.id,
-          typeId: c.typeId,
-          title: c.title,
-          config: c.config,
-          alertKeywords: c.alertKeywords,
-          notifyWebhookUrl: c.notifyWebhookUrl,
-          refreshIntervalSeconds: c.refreshIntervalSeconds,
-          filterKeywords: c.filterKeywords,
-          excludeKeywords: c.excludeKeywords,
-          items: [],
-        };
-      }
-      return {
-        decks: {
-          ...s.decks,
-          [result.deckId]: {
-            id: result.deckId,
-            name: result.deckName,
-            columnIds: result.columns.map((c) => c.id),
-          },
-        },
-        deckOrder: [...s.deckOrder, result.deckId],
-        activeDeckId: result.deckId,
-        columns: cols,
-      };
-    });
+    set((s) => importedDeckPatch(s, result));
+    return result;
+  },
+
+  loadDeckSnapshots: (deckId) => serverLoadDeckSnapshots(deckId),
+
+  restoreDeckSnapshot: async (snapshotId) => {
+    const result = await serverRestoreDeckSnapshot(snapshotId);
+    set((s) => importedDeckPatch(s, result));
     return result;
   },
 

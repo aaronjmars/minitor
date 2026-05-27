@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   integer,
+  serial,
   timestamp,
   jsonb,
   primaryKey,
@@ -32,6 +33,25 @@ export const columns = pgTable("columns", {
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Rolling per-deck snapshot log for version history. Each row is a full
+// DeckExport v1 JSON of the deck at a moment just before a structural mutation
+// (or just after an import/restore). Capped to the most recent few rows per
+// deck in app/actions.ts; cascades away with its parent deck.
+export const deckSnapshots = pgTable(
+  "deck_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    deckId: text("deck_id")
+      .notNull()
+      .references(() => decks.id, { onDelete: "cascade" }),
+    snapshotJson: text("snapshot_json").notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("deck_snapshots_deck_captured_idx").on(t.deckId, t.capturedAt)],
+);
 
 export const feedItems = pgTable(
   "feed_items",

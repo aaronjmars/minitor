@@ -82,6 +82,7 @@ Full plugin manifest: [`lib/columns/plugins/manifest.ts`](lib/columns/plugins/ma
 | **Database** (4) | PGlite default (zero install), node-postgres for self-hosted, `@neondatabase/serverless` HTTP driver for Neon, runtime selector by `DATABASE_URL` |
 | **UI** (7) | ⌘K command palette, `@dnd-kit` drag-reorder, conic-gradient refresh beam (CSS-only), live-ticking timestamps (1Hz `useSyncExternalStore`), onboarding flow, missing-key dimming on Add column, full-column loading skeleton |
 | **State** (3) | zustand + server-action writes, optimistic mutations, no localStorage (every device sees the same state) |
+| **Deck portability** (5) | Export (copy JSON), import (paste JSON), share link (`#deck=…` URL fragment), starter templates, and version history — auto-captured snapshots (last 5 per deck) restorable as a new deck from the deck menu |
 
 ### Use cases
 

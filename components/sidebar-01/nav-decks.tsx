@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronDown, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  History,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -29,6 +36,7 @@ import { getColumnType } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
 import { RenameDialog } from "@/components/dialogs/rename-dialog";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
+import { VersionHistoryDialog } from "@/components/dialogs/version-history-dialog";
 import { AddColumnDialog } from "@/components/column/add-column-dialog";
 
 export function focusColumn(columnId: string) {
@@ -53,6 +61,7 @@ export function NavDecks() {
   const [addColumnDeckId, setAddColumnDeckId] = useState<string | null>(null);
   const [deleteDeckId, setDeleteDeckId] = useState<string | null>(null);
   const [deleteColumnId, setDeleteColumnId] = useState<string | null>(null);
+  const [historyDeckId, setHistoryDeckId] = useState<string | null>(null);
 
   // Per-deck explicit open overrides. Decks not in this map fall back to
   // "open if active". Once the user toggles a deck, the override sticks.
@@ -193,6 +202,10 @@ export function NavDecks() {
                     <Pencil className="mr-2 size-4" />
                     <span className="whitespace-nowrap">Rename deck</span>
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setHistoryDeckId(deckId)}>
+                    <History className="mr-2 size-4" />
+                    <span className="whitespace-nowrap">Version history</span>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant="destructive"
@@ -257,6 +270,11 @@ export function NavDecks() {
           if (deleteColumnId) removeColumn(deleteColumnId);
           setDeleteColumnId(null);
         }}
+      />
+      <VersionHistoryDialog
+        deckId={historyDeckId}
+        open={historyDeckId !== null}
+        onOpenChange={(o) => !o && setHistoryDeckId(null)}
       />
     </>
   );
