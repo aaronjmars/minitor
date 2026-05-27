@@ -2,11 +2,11 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { columns, decks, feedItems } from "@/lib/db/schema";
+import { columns, deckSnapshots, decks, feedItems } from "@/lib/db/schema";
 import type { Column, Deck, FeedItem } from "@/lib/columns/types";
 import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
 import { ENV_KEYS, ENV_KEY_NAMES } from "@/lib/env-keys";
@@ -156,6 +156,8 @@ export async function createColumn(
   title: string,
   config: Record<string, unknown>,
 ): Promise<void> {
+  // Snapshot the pre-add deck state so the add is reversible from version history.
+  await captureDeckSnapshot(deckId);
   const [{ maxPos }] = await db
     .select({ maxPos: sql<number>`coalesce(max(${columns.position}), -1)` })
     .from(columns)
@@ -284,6 +286,13 @@ export async function renameColumn(id: string, title: string): Promise<void> {
 }
 
 export async function deleteColumn(id: string): Promise<void> {
+  // Snapshot the deck (still holding this column) before the delete, so an
+  // accidental removal can be recovered from version history.
+  const [col] = await db
+    .select({ deckId: columns.deckId })
+    .from(columns)
+    .where(eq(columns.id, id));
+  if (col) await captureDeckSnapshot(col.deckId);
   await db.delete(columns).where(eq(columns.id, id));
 }
 
@@ -292,6 +301,8 @@ export async function reorderColumnsInDeck(
   orderedIds: string[],
 ): Promise<void> {
   if (orderedIds.length === 0) return;
+  // Snapshot the pre-reorder column order before mutating positions.
+  await captureDeckSnapshot(deckId);
   const values = sql.join(
     orderedIds.map((id, i) => sql`(${id}::text, ${i}::int)`),
     sql`, `,
@@ -405,10 +416,14 @@ export interface ImportedDeckResult {
  * Validate `json` against the deck-export schema and create a new deck with
  * the imported columns. Always inserts as a new deck (never merges into an
  * existing one) and appends ` (imported)` to the name so the source deck
- * remains untouched. Returns the IDs needed to update the client store
- * without a full re-fetch.
+ * remains untouched. `nameSuffix` overrides the parenthetical tag (e.g.
+ * `"restored"` when called from `restoreDeckSnapshot`). Returns the IDs needed
+ * to update the client store without a full re-fetch.
  */
-export async function importDeck(json: string): Promise<ImportedDeckResult> {
+export async function importDeck(
+  json: string,
+  nameSuffix = "imported",
+): Promise<ImportedDeckResult> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -424,7 +439,7 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
   const data = result.data;
 
   const deckId = nanoid();
-  const deckName = `${data.deckName} (imported)`;
+  const deckName = `${data.deckName} (${nameSuffix})`;
   const created: ImportedDeckColumn[] = [];
 
   await db.transaction(async (tx) => {
@@ -491,7 +506,107 @@ export async function importDeck(json: string): Promise<ImportedDeckResult> {
     }
   });
 
+  // Seed version history for the freshly created deck (also covers restores,
+  // which route through this same path). Fire-and-forget — never fails import.
+  await captureDeckSnapshot(deckId);
+
   return { deckId, deckName, columns: created };
+}
+
+const DECK_SNAPSHOT_CAP = 5;
+
+export interface DeckSnapshotMeta {
+  id: number;
+  capturedAt: string;
+  columnCount: number;
+}
+
+/**
+ * Capture the current state of `deckId` into the rolling version-history log.
+ * Serializes via the same `exportDeck` path (so a snapshot is a valid
+ * DeckExport v1 payload that restores cleanly) and trims the deck's history to
+ * the most recent `DECK_SNAPSHOT_CAP` rows in one transaction. Fire-and-forget:
+ * it swallows its own errors so a failed capture never breaks the mutation that
+ * triggered it. Empty decks are skipped — an empty snapshot is noise with
+ * nothing to restore. Note: like every export path, snapshots deliberately omit
+ * `notifyWebhookUrl` (it can embed a secret), so a restored deck re-prompts for
+ * any alert webhook — same contract as deck export / share links.
+ */
+export async function captureDeckSnapshot(deckId: string): Promise<void> {
+  try {
+    const json = await exportDeck(deckId);
+    const parsed = JSON.parse(json) as DeckExport;
+    if (!parsed.columns || parsed.columns.length === 0) return;
+    await db.transaction(async (tx) => {
+      await tx.insert(deckSnapshots).values({ deckId, snapshotJson: json });
+      await tx.execute(sql`
+        DELETE FROM deck_snapshots
+        WHERE deck_id = ${deckId}
+          AND id NOT IN (
+            SELECT id FROM deck_snapshots
+            WHERE deck_id = ${deckId}
+            ORDER BY captured_at DESC, id DESC
+            LIMIT ${DECK_SNAPSHOT_CAP}
+          )
+      `);
+    });
+  } catch {
+    // Snapshotting must never break the triggering mutation.
+  }
+}
+
+/**
+ * Return the most recent snapshots for a deck (newest first), each with a
+ * lightweight column count parsed from the stored payload for the UI.
+ */
+export async function loadDeckSnapshots(
+  deckId: string,
+): Promise<DeckSnapshotMeta[]> {
+  const rows = await db
+    .select({
+      id: deckSnapshots.id,
+      capturedAt: deckSnapshots.capturedAt,
+      snapshotJson: deckSnapshots.snapshotJson,
+    })
+    .from(deckSnapshots)
+    .where(eq(deckSnapshots.deckId, deckId))
+    .orderBy(desc(deckSnapshots.capturedAt), desc(deckSnapshots.id))
+    .limit(DECK_SNAPSHOT_CAP);
+
+  return rows.map((r) => {
+    let columnCount = 0;
+    try {
+      const parsed = JSON.parse(r.snapshotJson) as DeckExport;
+      columnCount = parsed.columns?.length ?? 0;
+    } catch {
+      // Leave columnCount at 0 if a stored payload is somehow unparseable.
+    }
+    return {
+      id: r.id,
+      capturedAt: r.capturedAt.toISOString(),
+      columnCount,
+    };
+  });
+}
+
+/**
+ * Restore a snapshot by replaying its stored DeckExport JSON through
+ * `importDeck`. Non-destructive: it always creates a NEW deck (suffixed
+ * `(restored)`) rather than overwriting the current one, so a restore can
+ * itself be undone by deleting the new deck. Reuses importDeck's full Zod
+ * validation + SSRF re-check + new-deck contract.
+ */
+export async function restoreDeckSnapshot(
+  snapshotId: number,
+): Promise<ImportedDeckResult> {
+  const [row] = await db
+    .select({ snapshotJson: deckSnapshots.snapshotJson })
+    .from(deckSnapshots)
+    .where(eq(deckSnapshots.id, snapshotId));
+  if (!row) {
+    throw new Error("Snapshot not found");
+  }
+  return importDeck(row.snapshotJson, "restored");
 }
 
 export async function persistFetchedItems(
