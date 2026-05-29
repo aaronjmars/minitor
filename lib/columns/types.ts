@@ -180,6 +180,15 @@ export interface Column {
    * exported, same as `filterKeywords`.
    */
   excludeKeywords?: string;
+  /**
+   * Optional tab-group label. When at least one column in the active deck has a
+   * `tabGroup`, the deck renders a tab bar above the grid: clicking a tab
+   * filters the visible columns to those sharing that group. Untagged columns
+   * appear under an implicit "All" tab so a half-grouped deck stays usable.
+   * Bounded to 50 chars server-side. Round-trips through export / import /
+   * share links (not a secret).
+   */
+  tabGroup?: string;
   items: FeedItem[];
   lastFetchedAt?: string;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -19,14 +19,19 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 
-import { useDeckStore } from "@/lib/store/use-deck-store";
+import { useDeckStore, TAB_GROUP_ALL } from "@/lib/store/use-deck-store";
 import { ColumnCard } from "@/components/column/column-card";
 import { AddColumnDialog } from "@/components/column/add-column-dialog";
+import { cn } from "@/lib/utils";
 
 export function DeckBoard({ deckId }: { deckId: string }) {
   const deck = useDeckStore((s) => s.decks[deckId]);
   const columns = useDeckStore((s) => s.columns);
   const reorderColumnsInDeck = useDeckStore((s) => s.reorderColumnsInDeck);
+  const selectedTab = useDeckStore(
+    (s) => s.selectedTabByDeck[deckId] ?? TAB_GROUP_ALL,
+  );
+  const setSelectedTab = useDeckStore((s) => s.setSelectedTab);
 
   const [addOpen, setAddOpen] = useState(false);
 
@@ -34,6 +39,46 @@ export function DeckBoard({ deckId }: { deckId: string }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Build the unique, stable list of tab groups present in this deck. Sorted
+  // by the column position they first appear in, so the operator's reorder is
+  // the visual order of the tabs. Recomputed only when the deck's column list
+  // or any column's tabGroup changes.
+  const tabGroups = useMemo(() => {
+    if (!deck) return [];
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const id of deck.columnIds) {
+      const col = columns[id];
+      const tg = col?.tabGroup;
+      if (!tg || seen.has(tg)) continue;
+      seen.add(tg);
+      ordered.push(tg);
+    }
+    return ordered;
+  }, [deck, columns]);
+
+  // When the previously-selected tab disappears (last column in that group was
+  // moved or had its tab cleared), fall back to "All" so the deck doesn't end
+  // up showing zero columns with no obvious recovery.
+  useEffect(() => {
+    if (selectedTab === TAB_GROUP_ALL) return;
+    if (!tabGroups.includes(selectedTab)) {
+      setSelectedTab(deckId, TAB_GROUP_ALL);
+    }
+  }, [selectedTab, tabGroups, deckId, setSelectedTab]);
+
+  const visibleColumnIds = useMemo(() => {
+    if (!deck) return [];
+    if (selectedTab === TAB_GROUP_ALL) return deck.columnIds;
+    return deck.columnIds.filter((id) => {
+      const col = columns[id];
+      // Untagged columns ride along with every named tab too — otherwise an
+      // operator who partially groups a deck loses their unlabeled columns
+      // every time they click a tab, which reads as the feature being broken.
+      return !col || !col.tabGroup || col.tabGroup === selectedTab;
+    });
+  }, [deck, columns, selectedTab]);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -70,50 +115,110 @@ export function DeckBoard({ deckId }: { deckId: string }) {
     reorderColumnsInDeck(deck.id, arrayMove(deck.columnIds, oldIndex, newIndex));
   }
 
+  const hasTabs = tabGroups.length > 0;
+
   return (
-    <div ref={scrollerRef} className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory sm:snap-none">
-      <div className="flex h-full gap-2 p-2 sm:gap-3 sm:p-3">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToHorizontalAxis]}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={deck.columnIds}
-            strategy={horizontalListSortingStrategy}
-          >
-            {deck.columnIds.map((id) => {
-              const col = columns[id];
-              if (!col) return null;
-              return <ColumnCard key={id} column={col} />;
-            })}
-          </SortableContext>
-        </DndContext>
-
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className="group relative flex h-full w-[min(280px,calc(100vw-1rem))] shrink-0 snap-start flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed border-border bg-transparent text-sm text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:bg-surface/40 hover:text-foreground hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.18)] active:translate-y-0 sm:w-[280px] sm:snap-none"
-        >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, rgba(245,78,0,0.08), transparent 60%)",
-            }}
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {hasTabs && (
+        <div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-background/60 px-2 sm:px-3">
+          <TabButton
+            label="All"
+            count={deck.columnIds.length}
+            active={selectedTab === TAB_GROUP_ALL}
+            onClick={() => setSelectedTab(deck.id, TAB_GROUP_ALL)}
           />
-          <div className="relative flex size-11 items-center justify-center rounded-full bg-surface-elevated ring-1 ring-border transition-all duration-200 group-hover:scale-110 group-hover:rotate-90 group-hover:bg-[color:var(--brand)] group-hover:text-white group-hover:ring-[color:var(--brand)]/50 group-hover:shadow-[0_0_0_6px_rgba(245,78,0,0.08)]">
-            <Plus className="size-5 transition-transform duration-200" />
-          </div>
-          <span className="font-medium transition-transform duration-200 group-hover:translate-y-0.5">
-            Add column
-          </span>
-        </button>
-      </div>
+          {tabGroups.map((tg) => {
+            const count = deck.columnIds.reduce(
+              (n, id) => n + (columns[id]?.tabGroup === tg ? 1 : 0),
+              0,
+            );
+            return (
+              <TabButton
+                key={tg}
+                label={tg}
+                count={count}
+                active={selectedTab === tg}
+                onClick={() => setSelectedTab(deck.id, tg)}
+              />
+            );
+          })}
+        </div>
+      )}
 
-      <AddColumnDialog open={addOpen} onOpenChange={setAddOpen} deckId={deck.id} />
+      <div
+        ref={scrollerRef}
+        className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory sm:snap-none"
+      >
+        <div className="flex h-full gap-2 p-2 sm:gap-3 sm:p-3">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToHorizontalAxis]}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={visibleColumnIds}
+              strategy={horizontalListSortingStrategy}
+            >
+              {visibleColumnIds.map((id) => {
+                const col = columns[id];
+                if (!col) return null;
+                return <ColumnCard key={id} column={col} />;
+              })}
+            </SortableContext>
+          </DndContext>
+
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="group relative flex h-full w-[min(280px,calc(100vw-1rem))] shrink-0 snap-start flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed border-border bg-transparent text-sm text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[oklab(0.263084_-0.00230259_0.0124794_/_0.22)] hover:bg-surface/40 hover:text-foreground hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.18)] active:translate-y-0 sm:w-[280px] sm:snap-none"
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{
+                background:
+                  "radial-gradient(circle at 50% 40%, rgba(245,78,0,0.08), transparent 60%)",
+              }}
+            />
+            <div className="relative flex size-11 items-center justify-center rounded-full bg-surface-elevated ring-1 ring-border transition-all duration-200 group-hover:scale-110 group-hover:rotate-90 group-hover:bg-[color:var(--brand)] group-hover:text-white group-hover:ring-[color:var(--brand)]/50 group-hover:shadow-[0_0_0_6px_rgba(245,78,0,0.08)]">
+              <Plus className="size-5 transition-transform duration-200" />
+            </div>
+            <span className="font-medium transition-transform duration-200 group-hover:translate-y-0.5">
+              Add column
+            </span>
+          </button>
+        </div>
+
+        <AddColumnDialog open={addOpen} onOpenChange={setAddOpen} deckId={deck.id} />
+      </div>
     </div>
+  );
+}
+
+interface TabButtonProps {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}
+
+function TabButton({ label, count, active, onClick }: TabButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors",
+        active
+          ? "bg-[color:var(--brand)]/10 text-[color:var(--brand)]"
+          : "text-muted-foreground hover:bg-surface hover:text-foreground",
+      )}
+    >
+      <span className="truncate max-w-[12rem]">{label}</span>
+      <span className="rounded bg-surface-elevated px-1 text-[10px] tabular-nums text-muted-foreground">
+        {count}
+      </span>
+    </button>
   );
 }
