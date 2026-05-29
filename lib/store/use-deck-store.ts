@@ -23,13 +23,20 @@ import {
   updateColumnWebhookUrl as serverUpdateWebhookUrl,
   updateColumnRefreshInterval as serverUpdateRefreshInterval,
   updateColumnFilters as serverUpdateFilters,
+  updateColumnTabGroup as serverUpdateTabGroup,
   loadDeckSnapshots as serverLoadDeckSnapshots,
   restoreDeckSnapshot as serverRestoreDeckSnapshot,
   isAllowedRefreshInterval,
+  TAB_GROUP_MAX,
   type DeckSnapshotMeta,
   type ImportedDeckResult,
   type Snapshot,
 } from "@/app/actions";
+
+// Sentinel for the implicit "All" tab — used when a deck has tab groups
+// configured but the operator wants to see every column at once. Exported so
+// the deck-board can compare without re-deriving the string in both files.
+export const TAB_GROUP_ALL = "__all__";
 
 interface DeckState {
   hydrated: boolean;
@@ -38,8 +45,15 @@ interface DeckState {
   activeDeckId: string | null;
   columns: Record<string, Column>;
   autoFetchingIds: Set<string>;
+  /**
+   * Selected tab per deck. NOT persisted (view state only) — clears on reload,
+   * so the deck always opens to "All" on a fresh visit. Keyed on deck id so
+   * switching decks restores the last tab the operator picked in this session.
+   */
+  selectedTabByDeck: Record<string, string>;
 
   hydrate: (snapshot: Snapshot) => void;
+  setSelectedTab: (deckId: string, tab: string) => void;
 
   addDeck: (name: string) => string;
   renameDeck: (deckId: string, name: string) => void;
@@ -65,6 +79,7 @@ interface DeckState {
     filterKeywords: string,
     excludeKeywords: string,
   ) => void;
+  updateTabGroup: (columnId: string, tabGroup: string) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
@@ -101,6 +116,7 @@ function importedDeckPatch(
       refreshIntervalSeconds: c.refreshIntervalSeconds,
       filterKeywords: c.filterKeywords,
       excludeKeywords: c.excludeKeywords,
+      tabGroup: c.tabGroup,
       items: [],
     };
   }
@@ -132,6 +148,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
   activeDeckId: null,
   columns: {},
   autoFetchingIds: new Set<string>(),
+  selectedTabByDeck: {},
 
   hydrate: (snapshot) =>
     set((s) => ({
@@ -143,6 +160,11 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
           ? s.activeDeckId
           : (snapshot.deckOrder[0] ?? null),
       hydrated: true,
+    })),
+
+  setSelectedTab: (deckId, tab) =>
+    set((s) => ({
+      selectedTabByDeck: { ...s.selectedTabByDeck, [deckId]: tab },
     })),
 
   addDeck: (name) => {
@@ -304,6 +326,27 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       "updateColumnFilters",
       serverUpdateFilters(columnId, nextInclude, nextExclude),
     );
+  },
+
+  updateTabGroup: (columnId, tabGroup) => {
+    // Mirror the server-side normalization exactly so the optimistic state
+    // can't drift: same whitespace collapse, trim, and length cap. Anything
+    // empty after normalization clears the group (undefined / NULL on the wire).
+    const next = tabGroup.replace(/\s+/g, " ").trim().slice(0, TAB_GROUP_MAX);
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: {
+            ...col,
+            tabGroup: next.length === 0 ? undefined : next,
+          },
+        },
+      };
+    });
+    fireAndLog("updateColumnTabGroup", serverUpdateTabGroup(columnId, next));
   },
 
   renameColumn: (columnId, title) => {

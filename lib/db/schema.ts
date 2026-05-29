@@ -29,6 +29,7 @@ export const columns = pgTable("columns", {
   refreshIntervalSeconds: integer("refresh_interval_seconds"),
   filterKeywords: text("filter_keywords"),
   excludeKeywords: text("exclude_keywords"),
+  tabGroup: text("tab_group"),
   position: integer("position").notNull().default(0),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

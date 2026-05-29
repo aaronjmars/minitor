@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Clock, EyeOff, Filter, Webhook } from "lucide-react";
+import { Bell, Clock, EyeOff, Filter, LayoutGrid, Webhook } from "lucide-react";
 
 import {
   Dialog,
@@ -35,6 +35,11 @@ interface Props {
 }
 
 const ALERT_KEYWORDS_MAX = 512;
+const TAB_GROUP_MAX = 50;
+
+function normalizeTabGroup(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim().slice(0, TAB_GROUP_MAX);
+}
 
 // Sentinel for the Select value when the operator chooses "Manual only" —
 // Radix's Select disallows empty-string values, so we use a non-numeric token
@@ -62,6 +67,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const updateWebhookUrl = useDeckStore((s) => s.updateWebhookUrl);
   const updateRefreshInterval = useDeckStore((s) => s.updateRefreshInterval);
   const updateFilters = useDeckStore((s) => s.updateFilters);
+  const updateTabGroup = useDeckStore((s) => s.updateTabGroup);
 
   const [draft, setDraft] = useState<Record<string, unknown>>(column.config);
   const [alertDraft, setAlertDraft] = useState<string>(
@@ -79,6 +85,9 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const [excludeDraft, setExcludeDraft] = useState<string>(
     column.excludeKeywords ?? "",
   );
+  const [tabGroupDraft, setTabGroupDraft] = useState<string>(
+    column.tabGroup ?? "",
+  );
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -89,6 +98,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
       setRefreshDraft(refreshIntervalToOption(column.refreshIntervalSeconds));
       setFilterDraft(column.filterKeywords ?? "");
       setExcludeDraft(column.excludeKeywords ?? "");
+      setTabGroupDraft(column.tabGroup ?? "");
     }
   }
 
@@ -140,6 +150,10 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
       nextExclude !== (column.excludeKeywords ?? "")
     ) {
       updateFilters(column.id, nextFilter, nextExclude);
+    }
+    const nextTabGroup = normalizeTabGroup(tabGroupDraft);
+    if (nextTabGroup !== (column.tabGroup ?? "")) {
+      updateTabGroup(column.id, nextTabGroup);
     }
     onOpenChange(false);
   }
@@ -306,6 +320,30 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
                   Parsed {excludeTermCount} term{excludeTermCount === 1 ? "" : "s"}.
                 </>
               )}
+            </p>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="tab-group" className="flex items-center gap-1.5">
+              <LayoutGrid className="size-3.5" />
+              Tab group
+              <span className="text-[11px] font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id="tab-group"
+              placeholder="DeFi, Social, Dev…"
+              value={tabGroupDraft}
+              maxLength={TAB_GROUP_MAX}
+              onChange={(e) => setTabGroupDraft(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              When any column in the deck has a tab group, a tab bar appears
+              above the grid. Untagged columns live under an &ldquo;All&rdquo;
+              tab. Leave blank to keep the column visible on every tab.
             </p>
           </div>
         </div>

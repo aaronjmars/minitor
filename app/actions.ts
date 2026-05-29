@@ -94,6 +94,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       refreshIntervalSeconds: c.refreshIntervalSeconds ?? undefined,
       filterKeywords: c.filterKeywords ?? undefined,
       excludeKeywords: c.excludeKeywords ?? undefined,
+      tabGroup: c.tabGroup ?? undefined,
       items: [],
       lastFetchedAt: c.lastFetchedAt ? c.lastFetchedAt.toISOString() : undefined,
     };
@@ -281,6 +282,31 @@ export async function updateColumnFilters(
     .where(eq(columns.id, id));
 }
 
+/**
+ * Hard cap on a tab-group label. Generous enough for a Title-Case section name
+ * but tight enough to keep the tab bar readable and bound storage. Anything
+ * longer is truncated server-side rather than rejected — the UI never silently
+ * drops a paste.
+ */
+export const TAB_GROUP_MAX = 50;
+
+/**
+ * Persist a column's tab-group label. Pass an empty string to clear (no group).
+ * Whitespace is collapsed to a single space and trimmed so "AI", " AI ", and
+ * "AI  " all bucket to the same tab — operators don't have to think about
+ * exact-match casing when typing the same label across columns.
+ */
+export async function updateColumnTabGroup(
+  id: string,
+  tabGroup: string,
+): Promise<void> {
+  const normalized = tabGroup.replace(/\s+/g, " ").trim().slice(0, TAB_GROUP_MAX);
+  await db
+    .update(columns)
+    .set({ tabGroup: normalized.length === 0 ? null : normalized })
+    .where(eq(columns.id, id));
+}
+
 export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
@@ -334,6 +360,10 @@ const importedColumnSchema = z.object({
   // they are emitted by exportDeck and round-trip through share links.
   filterKeywords: z.string().max(512).optional(),
   excludeKeywords: z.string().max(512).optional(),
+  // Optional tab-group label. Not a secret — round-trips through export /
+  // import / share links so a multi-section starter deck can ship pre-grouped.
+  // Normalized server-side (whitespace collapsed, trimmed, capped to TAB_GROUP_MAX).
+  tabGroup: z.string().max(TAB_GROUP_MAX).optional(),
 });
 
 const importedDeckSchema = z.object({
@@ -365,6 +395,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       refreshIntervalSeconds: columns.refreshIntervalSeconds,
       filterKeywords: columns.filterKeywords,
       excludeKeywords: columns.excludeKeywords,
+      tabGroup: columns.tabGroup,
     })
     .from(columns)
     .where(eq(columns.deckId, deckId))
@@ -389,6 +420,7 @@ export async function exportDeck(deckId: string): Promise<string> {
         : {}),
       ...(c.filterKeywords ? { filterKeywords: c.filterKeywords } : {}),
       ...(c.excludeKeywords ? { excludeKeywords: c.excludeKeywords } : {}),
+      ...(c.tabGroup ? { tabGroup: c.tabGroup } : {}),
     })),
   };
   return JSON.stringify(payload, null, 2);
@@ -404,6 +436,7 @@ export interface ImportedDeckColumn {
   refreshIntervalSeconds?: number;
   filterKeywords?: string;
   excludeKeywords?: string;
+  tabGroup?: string;
 }
 
 export interface ImportedDeckResult {
@@ -479,6 +512,15 @@ export async function importDeck(
         c.excludeKeywords && c.excludeKeywords.length > 0
           ? c.excludeKeywords.slice(0, 512)
           : null;
+      // Normalize the imported tab-group label through the same rule as the
+      // server action (collapse internal whitespace, trim, cap) so a hand-edited
+      // payload can't smuggle "  AI  " and "AI" as two distinct buckets.
+      const tabGroupRaw = c.tabGroup ?? "";
+      const tabGroupNormalized = tabGroupRaw
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, TAB_GROUP_MAX);
+      const tabGroup = tabGroupNormalized.length === 0 ? null : tabGroupNormalized;
       await tx.insert(columns).values({
         id,
         deckId,
@@ -490,6 +532,7 @@ export async function importDeck(
         refreshIntervalSeconds,
         filterKeywords,
         excludeKeywords,
+        tabGroup,
         position: i,
       });
       created.push({
@@ -502,6 +545,7 @@ export async function importDeck(
         ...(refreshIntervalSeconds !== null ? { refreshIntervalSeconds } : {}),
         ...(filterKeywords ? { filterKeywords } : {}),
         ...(excludeKeywords ? { excludeKeywords } : {}),
+        ...(tabGroup ? { tabGroup } : {}),
       });
     }
   });

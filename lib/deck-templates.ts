@@ -37,6 +37,11 @@ export interface DeckTemplateColumn {
   // only surfaces items mentioning "CVE". Round-trip through importDeck.
   filterKeywords?: string;
   excludeKeywords?: string;
+  // Optional tab-group label. Let a multi-category starter deck ship pre-grouped
+  // (e.g. "DeFi" / "Social" / "Dev") so the tab bar renders on first import
+  // instead of forcing the operator to label each column by hand. Round-trips
+  // through importDeck — same TAB_GROUP_MAX cap, same whitespace normalization.
+  tabGroup?: string;
 }
 
 export interface DeckTemplatePayload {

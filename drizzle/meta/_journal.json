@@ -43,6 +43,13 @@
       "when": 1779840000000,
       "tag": "0005_deck_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779926400000,
+      "tag": "0006_tab_groups",
+      "breakpoints": true
     }
   ]
 }
