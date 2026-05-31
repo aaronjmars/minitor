@@ -102,6 +102,7 @@ interface DeckState {
 
   exportDeck: (deckId: string) => Promise<string>;
   importDeck: (json: string) => Promise<ImportedDeckResult>;
+  downloadColumnItems: (columnId: string) => number;
   loadDeckSnapshots: (deckId: string) => Promise<DeckSnapshotMeta[]>;
   restoreDeckSnapshot: (snapshotId: number) => Promise<ImportedDeckResult>;
 }
@@ -447,6 +448,62 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
   },
 
   exportDeck: (deckId) => serverExportDeck(deckId),
+
+  // Client-only — never round-trips the server. Pulls the column's cached
+  // items array straight out of the store, serializes to pretty-printed JSON,
+  // and drops a download via a synthetic <a download>. The filename embeds the
+  // column title (slugified) + UTC date so multiple exports of the same column
+  // across days don't collide in the user's Downloads folder.
+  //
+  // Returns the number of items written so the caller (column-card.tsx) can
+  // surface it in a toast — 0 means we deliberately did not trigger a download
+  // (no items cached yet; UI should disable the menu entry instead of letting
+  // the click through).
+  downloadColumnItems: (columnId) => {
+    if (typeof window === "undefined") return 0;
+    const col = get().columns[columnId];
+    if (!col || col.items.length === 0) return 0;
+
+    const payload = {
+      schema: "minitor.column-export.v1",
+      exportedAt: new Date().toISOString(),
+      column: {
+        id: col.id,
+        typeId: col.typeId,
+        title: col.title,
+      },
+      itemCount: col.items.length,
+      items: col.items,
+    };
+
+    const slug =
+      col.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 64) || "column";
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `${slug}-${date}.json`;
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      // Revoke immediately — the click has already started the save dialog
+      // by this point, and holding the URL alive leaks the blob for the
+      // lifetime of the tab.
+      URL.revokeObjectURL(url);
+    }
+    return col.items.length;
+  },
 
   importDeck: async (json) => {
     const result = await serverImportDeck(json);
