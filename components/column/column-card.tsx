@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Download,
   Filter,
   GripVertical,
   Loader2,
@@ -51,6 +52,8 @@ export function ColumnCard({ column }: { column: Column }) {
   const removeColumn = useDeckStore((s) => s.removeColumn);
   const applyFetchedItems = useDeckStore((s) => s.applyFetchedItems);
   const renameColumn = useDeckStore((s) => s.renameColumn);
+  const downloadColumnItems = useDeckStore((s) => s.downloadColumnItems);
+  const hasItems = column.items.length > 0;
   const isAutoFetchingRaw = useDeckStore((s) => s.autoFetchingIds.has(column.id));
   const isCollapsed = useDeckStore((s) => s.collapsedColumnIds.has(column.id));
   const toggleColumnCollapsed = useDeckStore((s) => s.toggleColumnCollapsed);
@@ -483,6 +486,21 @@ export function ColumnCard({ column }: { column: Column }) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRenameOpen(true)}>
                 <Pencil className="mr-2 size-4" /> Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!hasItems}
+                onClick={() => {
+                  const n = downloadColumnItems(column.id);
+                  if (n > 0) {
+                    toast.success(
+                      `Exported ${n} item${n === 1 ? "" : "s"}`,
+                      { description: column.title },
+                    );
+                  }
+                }}
+              >
+                <Download className="mr-2 size-4" />{" "}
+                {hasItems ? "Download items (JSON)" : "No items loaded yet"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
