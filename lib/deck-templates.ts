@@ -42,6 +42,11 @@ export interface DeckTemplateColumn {
   // instead of forcing the operator to label each column by hand. Round-trips
   // through importDeck — same TAB_GROUP_MAX cap, same whitespace normalization.
   tabGroup?: string;
+  // Optional pin flag. Let a starter template ship with a priority column (e.g.
+  // the project's main GitHub repo, or a token price column) already pinned to
+  // the front of the deck so it stays visible regardless of active tab and DnD
+  // reorder. Round-trips through importDeck.
+  pinned?: boolean;
 }
 
 export interface DeckTemplatePayload {

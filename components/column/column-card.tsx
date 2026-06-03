@@ -15,6 +15,7 @@ import {
   Loader2,
   MoreHorizontal,
   Pencil,
+  Pin,
   RefreshCw,
   Search,
   Settings2,
@@ -338,6 +339,13 @@ export function ColumnCard({ column }: { column: Column }) {
           </div>
         </div>
         <div className="mb-2 flex flex-col items-center gap-1.5">
+          {column.pinned && (
+            <Pin
+              aria-label="Pinned to the front of the deck"
+              className="size-3 text-[color:var(--brand)]"
+              strokeWidth={2.5}
+            />
+          )}
           {beamActive && (
             <Loader2
               aria-label="Fetching"
@@ -497,6 +505,19 @@ export function ColumnCard({ column }: { column: Column }) {
                 </TooltipContent>
               </Tooltip>
             )}
+          {column.pinned && (
+            <Tooltip>
+              <TooltipTrigger
+                aria-label="Pinned to the front of the deck"
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)]/10 text-[color:var(--brand)] ring-1 ring-[color:var(--brand)]/30"
+              >
+                <Pin className="size-3" strokeWidth={2.5} />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Pinned to the front · stays visible on every tab
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger
               onClick={() => {

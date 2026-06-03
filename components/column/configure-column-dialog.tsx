@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Clock, EyeOff, Filter, LayoutGrid, Webhook } from "lucide-react";
+import { Bell, Clock, EyeOff, Filter, LayoutGrid, Pin, Webhook } from "lucide-react";
 
 import {
   Dialog,
@@ -68,6 +68,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const updateRefreshInterval = useDeckStore((s) => s.updateRefreshInterval);
   const updateFilters = useDeckStore((s) => s.updateFilters);
   const updateTabGroup = useDeckStore((s) => s.updateTabGroup);
+  const updatePinned = useDeckStore((s) => s.updatePinned);
 
   const [draft, setDraft] = useState<Record<string, unknown>>(column.config);
   const [alertDraft, setAlertDraft] = useState<string>(
@@ -88,6 +89,9 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const [tabGroupDraft, setTabGroupDraft] = useState<string>(
     column.tabGroup ?? "",
   );
+  const [pinnedDraft, setPinnedDraft] = useState<boolean>(
+    column.pinned === true,
+  );
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -99,6 +103,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
       setFilterDraft(column.filterKeywords ?? "");
       setExcludeDraft(column.excludeKeywords ?? "");
       setTabGroupDraft(column.tabGroup ?? "");
+      setPinnedDraft(column.pinned === true);
     }
   }
 
@@ -154,6 +159,9 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
     const nextTabGroup = normalizeTabGroup(tabGroupDraft);
     if (nextTabGroup !== (column.tabGroup ?? "")) {
       updateTabGroup(column.id, nextTabGroup);
+    }
+    if (pinnedDraft !== (column.pinned === true)) {
+      updatePinned(column.id, pinnedDraft);
     }
     onOpenChange(false);
   }
@@ -324,6 +332,36 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
           </div>
 
           <Separator />
+
+          <div className="grid gap-1.5">
+            <Label
+              htmlFor="pin-to-front"
+              className="flex items-center gap-1.5"
+            >
+              <Pin className="size-3.5" />
+              Pin to front
+              <span className="text-[11px] font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <label
+              htmlFor="pin-to-front"
+              className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-surface/40 px-3 py-2 hover:bg-surface"
+            >
+              <input
+                id="pin-to-front"
+                type="checkbox"
+                checked={pinnedDraft}
+                onChange={(e) => setPinnedDraft(e.target.checked)}
+                className="mt-0.5 size-4 cursor-pointer accent-[color:var(--brand)]"
+              />
+              <span className="text-xs text-muted-foreground">
+                Pinned columns render before every other column in the deck and
+                stay visible regardless of the active tab. DnD reorder still
+                works within the pinned and unpinned groups.
+              </span>
+            </label>
+          </div>
 
           <div className="grid gap-1.5">
             <Label htmlFor="tab-group" className="flex items-center gap-1.5">

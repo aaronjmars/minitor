@@ -189,6 +189,15 @@ export interface Column {
    * share links (not a secret).
    */
   tabGroup?: string;
+  /**
+   * Optional pin flag. When true, the column is rendered before every unpinned
+   * column in the deck regardless of its stored `position`. Pinned order among
+   * themselves follows the same `position` ordering, so a deck with two pinned
+   * columns keeps them in their relative DnD-reorder order. Round-trips through
+   * export / import / share links (not a secret); a starter template can ship
+   * with priority columns already pinned.
+   */
+  pinned?: boolean;
   items: FeedItem[];
   lastFetchedAt?: string;
 }

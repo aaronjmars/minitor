@@ -95,6 +95,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       filterKeywords: c.filterKeywords ?? undefined,
       excludeKeywords: c.excludeKeywords ?? undefined,
       tabGroup: c.tabGroup ?? undefined,
+      pinned: c.pinned ? true : undefined,
       items: [],
       lastFetchedAt: c.lastFetchedAt ? c.lastFetchedAt.toISOString() : undefined,
     };
@@ -307,6 +308,23 @@ export async function updateColumnTabGroup(
     .where(eq(columns.id, id));
 }
 
+/**
+ * Persist a column's pinned flag. Pinned columns render before every unpinned
+ * column in the deck regardless of their stored `position`, so the deck-board's
+ * sort order is `pinned DESC, position ASC` instead of `position ASC` alone.
+ * DnD reorder still works within each group (pinned among pinned, unpinned
+ * among unpinned) — `position` keeps the stable relative order.
+ */
+export async function updateColumnPinned(
+  id: string,
+  pinned: boolean,
+): Promise<void> {
+  await db
+    .update(columns)
+    .set({ pinned })
+    .where(eq(columns.id, id));
+}
+
 export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
@@ -364,6 +382,10 @@ const importedColumnSchema = z.object({
   // import / share links so a multi-section starter deck can ship pre-grouped.
   // Normalized server-side (whitespace collapsed, trimmed, capped to TAB_GROUP_MAX).
   tabGroup: z.string().max(TAB_GROUP_MAX).optional(),
+  // Optional pin flag. Not a secret — round-trips through export / import /
+  // share links so a starter template can ship with priority columns already
+  // pinned to the deck's front.
+  pinned: z.boolean().optional(),
 });
 
 const importedDeckSchema = z.object({
@@ -396,6 +418,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       filterKeywords: columns.filterKeywords,
       excludeKeywords: columns.excludeKeywords,
       tabGroup: columns.tabGroup,
+      pinned: columns.pinned,
     })
     .from(columns)
     .where(eq(columns.deckId, deckId))
@@ -421,6 +444,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       ...(c.filterKeywords ? { filterKeywords: c.filterKeywords } : {}),
       ...(c.excludeKeywords ? { excludeKeywords: c.excludeKeywords } : {}),
       ...(c.tabGroup ? { tabGroup: c.tabGroup } : {}),
+      ...(c.pinned ? { pinned: true } : {}),
     })),
   };
   return JSON.stringify(payload, null, 2);
@@ -437,6 +461,7 @@ export interface ImportedDeckColumn {
   filterKeywords?: string;
   excludeKeywords?: string;
   tabGroup?: string;
+  pinned?: boolean;
 }
 
 export interface ImportedDeckResult {
@@ -521,6 +546,9 @@ export async function importDeck(
         .trim()
         .slice(0, TAB_GROUP_MAX);
       const tabGroup = tabGroupNormalized.length === 0 ? null : tabGroupNormalized;
+      // Pinned is a plain boolean — coerce missing/non-true to false so a
+      // hand-edited payload can't smuggle a truthy non-boolean into the DB.
+      const pinned = c.pinned === true;
       await tx.insert(columns).values({
         id,
         deckId,
@@ -533,6 +561,7 @@ export async function importDeck(
         filterKeywords,
         excludeKeywords,
         tabGroup,
+        pinned,
         position: i,
       });
       created.push({
@@ -546,6 +575,7 @@ export async function importDeck(
         ...(filterKeywords ? { filterKeywords } : {}),
         ...(excludeKeywords ? { excludeKeywords } : {}),
         ...(tabGroup ? { tabGroup } : {}),
+        ...(pinned ? { pinned: true } : {}),
       });
     }
   });
