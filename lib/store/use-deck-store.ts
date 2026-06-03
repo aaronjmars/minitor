@@ -24,6 +24,7 @@ import {
   updateColumnRefreshInterval as serverUpdateRefreshInterval,
   updateColumnFilters as serverUpdateFilters,
   updateColumnTabGroup as serverUpdateTabGroup,
+  updateColumnPinned as serverUpdatePinned,
   loadDeckSnapshots as serverLoadDeckSnapshots,
   restoreDeckSnapshot as serverRestoreDeckSnapshot,
   isAllowedRefreshInterval,
@@ -100,6 +101,7 @@ interface DeckState {
     excludeKeywords: string,
   ) => void;
   updateTabGroup: (columnId: string, tabGroup: string) => void;
+  updatePinned: (columnId: string, pinned: boolean) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
@@ -138,6 +140,7 @@ function importedDeckPatch(
       filterKeywords: c.filterKeywords,
       excludeKeywords: c.excludeKeywords,
       tabGroup: c.tabGroup,
+      pinned: c.pinned,
       items: [],
     };
   }
@@ -404,6 +407,26 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       };
     });
     fireAndLog("updateColumnTabGroup", serverUpdateTabGroup(columnId, next));
+  },
+
+  updatePinned: (columnId, pinned) => {
+    // Plain boolean — coerce to true/false so the optimistic state can't carry
+    // a truthy non-boolean and silently differ from the server cast.
+    const next = pinned === true;
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: {
+            ...col,
+            pinned: next ? true : undefined,
+          },
+        },
+      };
+    });
+    fireAndLog("updateColumnPinned", serverUpdatePinned(columnId, next));
   },
 
   renameColumn: (columnId, title) => {

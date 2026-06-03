@@ -70,14 +70,29 @@ export function DeckBoard({ deckId }: { deckId: string }) {
 
   const visibleColumnIds = useMemo(() => {
     if (!deck) return [];
-    if (selectedTab === TAB_GROUP_ALL) return deck.columnIds;
-    return deck.columnIds.filter((id) => {
-      const col = columns[id];
-      // Untagged columns ride along with every named tab too — otherwise an
-      // operator who partially groups a deck loses their unlabeled columns
-      // every time they click a tab, which reads as the feature being broken.
-      return !col || !col.tabGroup || col.tabGroup === selectedTab;
-    });
+    const tabFiltered =
+      selectedTab === TAB_GROUP_ALL
+        ? deck.columnIds
+        : deck.columnIds.filter((id) => {
+            const col = columns[id];
+            // Untagged columns ride along with every named tab too — otherwise
+            // an operator who partially groups a deck loses their unlabeled
+            // columns every time they click a tab, which reads as broken.
+            return !col || !col.tabGroup || col.tabGroup === selectedTab;
+          });
+    // Pinned columns render before every unpinned column regardless of the
+    // stored position. Array.prototype.sort is stable, so the relative order
+    // within the pinned group (and within the unpinned group) is preserved —
+    // DnD reorder still works inside each group. This pass mutates a copy, so
+    // the underlying deck.columnIds order (used by reorderColumnsInDeck and
+    // the SortableContext below) is unchanged.
+    const pinned: string[] = [];
+    const unpinned: string[] = [];
+    for (const id of tabFiltered) {
+      if (columns[id]?.pinned) pinned.push(id);
+      else unpinned.push(id);
+    }
+    return pinned.length === 0 ? tabFiltered : [...pinned, ...unpinned];
   }, [deck, columns, selectedTab]);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +124,15 @@ export function DeckBoard({ deckId }: { deckId: string }) {
     if (!deck) return;
     const { active, over } = ev;
     if (!over || active.id === over.id) return;
+    // Drag is restricted to within the same pin group: pinned-among-pinned or
+    // unpinned-among-unpinned. Dragging across the boundary would either need
+    // to flip the pinned flag (surprising — the operator wanted to move, not
+    // pin) or silently land the column in an unexpected slot once the visual
+    // order is re-sorted in `visibleColumnIds`. The Pin-to-front checkbox in
+    // Configure is the explicit affordance for crossing the boundary.
+    const activePinned = columns[String(active.id)]?.pinned === true;
+    const overPinned = columns[String(over.id)]?.pinned === true;
+    if (activePinned !== overPinned) return;
     const oldIndex = deck.columnIds.indexOf(String(active.id));
     const newIndex = deck.columnIds.indexOf(String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;

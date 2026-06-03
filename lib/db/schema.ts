@@ -5,6 +5,7 @@ import {
   serial,
   timestamp,
   jsonb,
+  boolean,
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
@@ -30,6 +31,7 @@ export const columns = pgTable("columns", {
   filterKeywords: text("filter_keywords"),
   excludeKeywords: text("exclude_keywords"),
   tabGroup: text("tab_group"),
+  pinned: boolean("pinned").notNull().default(false),
   position: integer("position").notNull().default(0),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

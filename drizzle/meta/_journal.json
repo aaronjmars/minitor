@@ -50,6 +50,13 @@
       "when": 1779926400000,
       "tag": "0006_tab_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780012800000,
+      "tag": "0007_column_pinned",
+      "breakpoints": true
     }
   ]
 }
