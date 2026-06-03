@@ -75,10 +75,12 @@ export function DeckBoard({ deckId }: { deckId: string }) {
         ? deck.columnIds
         : deck.columnIds.filter((id) => {
             const col = columns[id];
+            // Pinned columns stay visible on every tab — that's the point of
+            // pinning, and the Configure copy + header tooltip promise it.
             // Untagged columns ride along with every named tab too — otherwise
             // an operator who partially groups a deck loses their unlabeled
             // columns every time they click a tab, which reads as broken.
-            return !col || !col.tabGroup || col.tabGroup === selectedTab;
+            return col?.pinned || !col || !col.tabGroup || col.tabGroup === selectedTab;
           });
     // Pinned columns render before every unpinned column regardless of the
     // stored position. Array.prototype.sort is stable, so the relative order
