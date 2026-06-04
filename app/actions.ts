@@ -329,6 +329,83 @@ export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
 
+/**
+ * Duplicate an existing column inside the same deck. The duplicate inherits
+ * every persisted setting that round-trips through a deck export
+ * (typeId, config, alertKeywords, refreshIntervalSeconds, filterKeywords,
+ * excludeKeywords, tabGroup) AND the install-private notifyWebhookUrl — this
+ * is a same-install copy, not an export, so the secret stays inside the
+ * trust boundary it was originally configured within. The caller controls
+ * the new title (the client passes a sensible default like "Original (copy)").
+ *
+ * `pinned` is deliberately NOT inherited — pinning is the operator's
+ * explicit "this is a primary column" decision. Mirrors the deck-board's
+ * "DnD across pin/unpin no-op" rule from PR #59: crossing the pin boundary
+ * always requires an explicit action.
+ *
+ * The duplicate is inserted at `source.position + 1` so it lands
+ * immediately next to its source — every later column shifts right by one.
+ * Inserting at the end of the deck would force the operator to drag the
+ * copy back over the rest of a long deck to find it, which is the
+ * opposite of what a duplicate action is for.
+ */
+export async function duplicateColumn(
+  sourceId: string,
+  newId: string,
+  newTitle: string,
+): Promise<ImportedDeckColumn | null> {
+  const [src] = await db.select().from(columns).where(eq(columns.id, sourceId));
+  if (!src) return null;
+
+  // Snapshot the pre-duplicate deck state so the structural mutation is
+  // reversible from version history — same pattern as createColumn /
+  // deleteColumn / reorderColumnsInDeck.
+  await captureDeckSnapshot(src.deckId);
+
+  // Shift every column after the source right by 1 to make room for the
+  // duplicate at source.position + 1.
+  await db
+    .update(columns)
+    .set({ position: sql`${columns.position} + 1` })
+    .where(
+      and(
+        eq(columns.deckId, src.deckId),
+        sql`${columns.position} > ${src.position}`,
+      ),
+    );
+
+  const title = newTitle.trim().slice(0, 256) || src.title.slice(0, 256);
+  await db.insert(columns).values({
+    id: newId,
+    deckId: src.deckId,
+    typeId: src.typeId,
+    title,
+    config: src.config,
+    alertKeywords: src.alertKeywords,
+    notifyWebhookUrl: src.notifyWebhookUrl,
+    refreshIntervalSeconds: src.refreshIntervalSeconds,
+    filterKeywords: src.filterKeywords,
+    excludeKeywords: src.excludeKeywords,
+    tabGroup: src.tabGroup,
+    pinned: false,
+    position: src.position + 1,
+  });
+
+  return {
+    id: newId,
+    typeId: src.typeId,
+    title,
+    config: (src.config as Record<string, unknown>) ?? {},
+    alertKeywords: src.alertKeywords ?? undefined,
+    notifyWebhookUrl: src.notifyWebhookUrl ?? undefined,
+    refreshIntervalSeconds: src.refreshIntervalSeconds ?? undefined,
+    filterKeywords: src.filterKeywords ?? undefined,
+    excludeKeywords: src.excludeKeywords ?? undefined,
+    tabGroup: src.tabGroup ?? undefined,
+    pinned: false,
+  };
+}
+
 export async function deleteColumn(id: string): Promise<void> {
   // Snapshot the deck (still holding this column) before the delete, so an
   // accidental removal can be recovered from version history.

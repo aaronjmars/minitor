@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Copy,
   Download,
   Filter,
   GripVertical,
@@ -57,6 +58,7 @@ export function ColumnCard({ column }: { column: Column }) {
   const applyFetchedItems = useDeckStore((s) => s.applyFetchedItems);
   const renameColumn = useDeckStore((s) => s.renameColumn);
   const downloadColumnItems = useDeckStore((s) => s.downloadColumnItems);
+  const duplicateColumn = useDeckStore((s) => s.duplicateColumn);
   const hasItems = column.items.length > 0;
   const isAutoFetchingRaw = useDeckStore((s) => s.autoFetchingIds.has(column.id));
   const isCollapsed = useDeckStore((s) => s.collapsedColumnIds.has(column.id));
@@ -586,6 +588,18 @@ export function ColumnCard({ column }: { column: Column }) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRenameOpen(true)}>
                 <Pencil className="mr-2 size-4" /> Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const result = duplicateColumn(column.id);
+                  if (result) {
+                    toast.success("Column duplicated", {
+                      description: `${column.title} (copy)`,
+                    });
+                  }
+                }}
+              >
+                <Copy className="mr-2 size-4" /> Duplicate
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={!hasItems}

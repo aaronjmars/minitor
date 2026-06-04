@@ -11,6 +11,7 @@ import {
   createDeck as serverCreateDeck,
   deleteColumn as serverDeleteColumn,
   deleteDeck as serverDeleteDeck,
+  duplicateColumn as serverDuplicateColumn,
   exportDeck as serverExportDeck,
   importDeck as serverImportDeck,
   persistFetchedItems as serverPersistItems,
@@ -88,6 +89,7 @@ interface DeckState {
     title: string,
     config: Record<string, unknown>,
   ) => { id: string; ready: Promise<void> };
+  duplicateColumn: (columnId: string) => { id: string; ready: Promise<void> } | null;
   updateColumnConfig: (columnId: string, config: Record<string, unknown>) => void;
   updateAlertKeywords: (columnId: string, alertKeywords: string) => void;
   updateWebhookUrl: (columnId: string, webhookUrl: string) => void;
@@ -288,6 +290,73 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
     });
     const ready = serverCreateColumn(id, deckId, typeId, title, config);
     fireAndLog("createColumn", ready);
+    return { id, ready: ready.then(() => undefined) };
+  },
+
+  duplicateColumn: (columnId) => {
+    const state = get();
+    const source = state.columns[columnId];
+    if (!source) return null;
+    // Locate the deck the source lives in so the optimistic insert lands in
+    // the right deck's columnIds. `columns[]` is a flat map across decks, so
+    // we read it off the decks index rather than carrying it on the column.
+    let deckId: string | null = null;
+    for (const [did, deck] of Object.entries(state.decks)) {
+      if (deck.columnIds.includes(columnId)) {
+        deckId = did;
+        break;
+      }
+    }
+    if (!deckId) return null;
+
+    const id = nanoid();
+    // The title strategy is "<source> (copy)" — same convention as duplicated
+    // files in finders and "Untitled copy" in most cloud doc apps. Capped to
+    // 256 chars to match the server-side `title.slice(0, 256)`.
+    const title = `${source.title} (copy)`.slice(0, 256);
+
+    set((s) => {
+      const deck = s.decks[deckId!];
+      if (!deck) return s;
+      const insertAt = deck.columnIds.indexOf(columnId);
+      const nextColumnIds =
+        insertAt < 0
+          ? [...deck.columnIds, id]
+          : [
+              ...deck.columnIds.slice(0, insertAt + 1),
+              id,
+              ...deck.columnIds.slice(insertAt + 1),
+            ];
+      return {
+        columns: {
+          ...s.columns,
+          [id]: {
+            id,
+            typeId: source.typeId,
+            title,
+            config: source.config,
+            alertKeywords: source.alertKeywords,
+            notifyWebhookUrl: source.notifyWebhookUrl,
+            refreshIntervalSeconds: source.refreshIntervalSeconds,
+            filterKeywords: source.filterKeywords,
+            excludeKeywords: source.excludeKeywords,
+            tabGroup: source.tabGroup,
+            // Pinning is the operator's explicit "primary column" decision —
+            // duplicates land unpinned regardless of source state, mirroring
+            // PR #59's "DnD across pin/unpin no-op" rule.
+            pinned: undefined,
+            items: [],
+          },
+        },
+        decks: {
+          ...s.decks,
+          [deckId!]: { ...deck, columnIds: nextColumnIds },
+        },
+      };
+    });
+
+    const ready = serverDuplicateColumn(columnId, id, title);
+    fireAndLog("duplicateColumn", ready);
     return { id, ready: ready.then(() => undefined) };
   },
 
