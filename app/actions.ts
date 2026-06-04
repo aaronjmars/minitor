@@ -362,33 +362,39 @@ export async function duplicateColumn(
   // deleteColumn / reorderColumnsInDeck.
   await captureDeckSnapshot(src.deckId);
 
-  // Shift every column after the source right by 1 to make room for the
-  // duplicate at source.position + 1.
-  await db
-    .update(columns)
-    .set({ position: sql`${columns.position} + 1` })
-    .where(
-      and(
-        eq(columns.deckId, src.deckId),
-        sql`${columns.position} > ${src.position}`,
-      ),
-    );
-
   const title = newTitle.trim().slice(0, 256) || src.title.slice(0, 256);
-  await db.insert(columns).values({
-    id: newId,
-    deckId: src.deckId,
-    typeId: src.typeId,
-    title,
-    config: src.config,
-    alertKeywords: src.alertKeywords,
-    notifyWebhookUrl: src.notifyWebhookUrl,
-    refreshIntervalSeconds: src.refreshIntervalSeconds,
-    filterKeywords: src.filterKeywords,
-    excludeKeywords: src.excludeKeywords,
-    tabGroup: src.tabGroup,
-    pinned: false,
-    position: src.position + 1,
+
+  // Shift-then-insert must be atomic: a crash between the two writes would
+  // leave every later column shifted right with no duplicate filling the gap.
+  // Wrap both in a transaction, mirroring importDeck.
+  await db.transaction(async (tx) => {
+    // Shift every column after the source right by 1 to make room for the
+    // duplicate at source.position + 1.
+    await tx
+      .update(columns)
+      .set({ position: sql`${columns.position} + 1` })
+      .where(
+        and(
+          eq(columns.deckId, src.deckId),
+          sql`${columns.position} > ${src.position}`,
+        ),
+      );
+
+    await tx.insert(columns).values({
+      id: newId,
+      deckId: src.deckId,
+      typeId: src.typeId,
+      title,
+      config: src.config,
+      alertKeywords: src.alertKeywords,
+      notifyWebhookUrl: src.notifyWebhookUrl,
+      refreshIntervalSeconds: src.refreshIntervalSeconds,
+      filterKeywords: src.filterKeywords,
+      excludeKeywords: src.excludeKeywords,
+      tabGroup: src.tabGroup,
+      pinned: false,
+      position: src.position + 1,
+    });
   });
 
   return {

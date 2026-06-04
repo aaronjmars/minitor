@@ -334,7 +334,9 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
             id,
             typeId: source.typeId,
             title,
-            config: source.config,
+            // Shallow-copy so the clone never shares the source's config object
+            // reference (a future in-place config edit must not mutate both).
+            config: { ...source.config },
             alertKeywords: source.alertKeywords,
             notifyWebhookUrl: source.notifyWebhookUrl,
             refreshIntervalSeconds: source.refreshIntervalSeconds,
