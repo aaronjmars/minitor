@@ -523,9 +523,13 @@ const importedColumnSchema = z.object({
   pinned: z.boolean().optional(),
   // Optional color label (6-char hex `#rrggbb`). Not a secret — round-trips
   // through export / import / share links so a starter template can ship
-  // with pre-colored lanes. Re-validated through `normalizeColumnColor` on
-  // import; non-matching strings are dropped rather than failing the import.
-  color: z.string().regex(COLOR_HEX_RE).optional(),
+  // with pre-colored lanes. Deliberately NOT `.regex()`-validated here (same
+  // posture as notifyWebhookUrl above): the real check is the imperative
+  // `normalizeColumnColor(c.color)` in importDeck, which returns null for any
+  // non-`#rrggbb` string so a bad value is *dropped*, not fatal. A `.regex()`
+  // here would fail safeParse and throw, killing the entire deck import on a
+  // single malformed color — contradicting that drop-not-fail contract.
+  color: z.string().max(64).optional(),
 });
 
 const importedDeckSchema = z.object({
