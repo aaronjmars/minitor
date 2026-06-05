@@ -57,6 +57,13 @@
       "when": 1780012800000,
       "tag": "0007_column_pinned",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780099200000,
+      "tag": "0008_column_color",
+      "breakpoints": true
     }
   ]
 }

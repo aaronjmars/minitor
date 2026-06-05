@@ -96,6 +96,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       excludeKeywords: c.excludeKeywords ?? undefined,
       tabGroup: c.tabGroup ?? undefined,
       pinned: c.pinned ? true : undefined,
+      color: c.color ?? undefined,
       items: [],
       lastFetchedAt: c.lastFetchedAt ? c.lastFetchedAt.toISOString() : undefined,
     };
@@ -325,6 +326,48 @@ export async function updateColumnPinned(
     .where(eq(columns.id, id));
 }
 
+/**
+ * Hex-color regex applied to every persisted column color. 6-hex form only
+ * (`#rrggbb`); the 3-hex shorthand and named CSS colors are deliberately
+ * rejected so the stored representation is canonical — round-tripping a
+ * color through export → import → DB always gives the same string back.
+ */
+export const COLOR_HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * Normalize an operator-entered color string. Returns the canonical
+ * lowercased `#rrggbb` form when valid; `null` when empty after trim or
+ * when the input doesn't match the hex pattern. The same normalizer is
+ * applied by `updateColumnColor`, `duplicateColumn`, and `importDeck` so a
+ * tampered or hand-edited payload can never smuggle anything but a pure
+ * 6-hex string into the DB.
+ */
+export function normalizeColumnColor(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined) return null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  if (!COLOR_HEX_RE.test(trimmed)) return null;
+  return trimmed.toLowerCase();
+}
+
+/**
+ * Persist a column's color label. Pass an empty string or an invalid hex
+ * to clear (the normalizer treats both the same way — there's no value in
+ * differentiating "no color" from "tried to set an invalid color"; the UI
+ * validates before calling). Validation is server-authoritative so a
+ * hand-edited payload can never bypass the hex check.
+ */
+export async function updateColumnColor(
+  id: string,
+  color: string,
+): Promise<void> {
+  const normalized = normalizeColumnColor(color);
+  await db
+    .update(columns)
+    .set({ color: normalized })
+    .where(eq(columns.id, id));
+}
+
 export async function renameColumn(id: string, title: string): Promise<void> {
   await db.update(columns).set({ title }).where(eq(columns.id, id));
 }
@@ -342,6 +385,13 @@ export async function renameColumn(id: string, title: string): Promise<void> {
  * explicit "this is a primary column" decision. Mirrors the deck-board's
  * "DnD across pin/unpin no-op" rule from PR #59: crossing the pin boundary
  * always requires an explicit action.
+ *
+ * `color` IS inherited — unlike pinned (a routing decision about where in
+ * the deck the column lives), color is a visual labeling decision about
+ * what kind of column this is. A duplicated DeFi column is still a DeFi
+ * column; if the operator wanted to recolor it, they would do so
+ * explicitly afterwards. Inheriting matches the "same lane, same color"
+ * intent that color labels exist to encode.
  *
  * The duplicate is inserted at `source.position + 1` so it lands
  * immediately next to its source — every later column shifts right by one.
@@ -393,6 +443,7 @@ export async function duplicateColumn(
       excludeKeywords: src.excludeKeywords,
       tabGroup: src.tabGroup,
       pinned: false,
+      color: src.color,
       position: src.position + 1,
     });
   });
@@ -409,6 +460,7 @@ export async function duplicateColumn(
     excludeKeywords: src.excludeKeywords ?? undefined,
     tabGroup: src.tabGroup ?? undefined,
     pinned: false,
+    color: src.color ?? undefined,
   };
 }
 
@@ -469,6 +521,15 @@ const importedColumnSchema = z.object({
   // share links so a starter template can ship with priority columns already
   // pinned to the deck's front.
   pinned: z.boolean().optional(),
+  // Optional color label (6-char hex `#rrggbb`). Not a secret — round-trips
+  // through export / import / share links so a starter template can ship
+  // with pre-colored lanes. Deliberately NOT `.regex()`-validated here (same
+  // posture as notifyWebhookUrl above): the real check is the imperative
+  // `normalizeColumnColor(c.color)` in importDeck, which returns null for any
+  // non-`#rrggbb` string so a bad value is *dropped*, not fatal. A `.regex()`
+  // here would fail safeParse and throw, killing the entire deck import on a
+  // single malformed color — contradicting that drop-not-fail contract.
+  color: z.string().max(64).optional(),
 });
 
 const importedDeckSchema = z.object({
@@ -502,6 +563,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       excludeKeywords: columns.excludeKeywords,
       tabGroup: columns.tabGroup,
       pinned: columns.pinned,
+      color: columns.color,
     })
     .from(columns)
     .where(eq(columns.deckId, deckId))
@@ -528,6 +590,7 @@ export async function exportDeck(deckId: string): Promise<string> {
       ...(c.excludeKeywords ? { excludeKeywords: c.excludeKeywords } : {}),
       ...(c.tabGroup ? { tabGroup: c.tabGroup } : {}),
       ...(c.pinned ? { pinned: true } : {}),
+      ...(c.color ? { color: c.color } : {}),
     })),
   };
   return JSON.stringify(payload, null, 2);
@@ -545,6 +608,7 @@ export interface ImportedDeckColumn {
   excludeKeywords?: string;
   tabGroup?: string;
   pinned?: boolean;
+  color?: string;
 }
 
 export interface ImportedDeckResult {
@@ -632,6 +696,11 @@ export async function importDeck(
       // Pinned is a plain boolean — coerce missing/non-true to false so a
       // hand-edited payload can't smuggle a truthy non-boolean into the DB.
       const pinned = c.pinned === true;
+      // Re-validate any imported color string through the same hex normalizer
+      // the live update path uses. A non-matching value is silently dropped
+      // (null) rather than failing the import — same posture as
+      // notifyWebhookUrl's SSRF guard above.
+      const color = normalizeColumnColor(c.color);
       await tx.insert(columns).values({
         id,
         deckId,
@@ -645,6 +714,7 @@ export async function importDeck(
         excludeKeywords,
         tabGroup,
         pinned,
+        color,
         position: i,
       });
       created.push({
@@ -659,6 +729,7 @@ export async function importDeck(
         ...(excludeKeywords ? { excludeKeywords } : {}),
         ...(tabGroup ? { tabGroup } : {}),
         ...(pinned ? { pinned: true } : {}),
+        ...(color ? { color } : {}),
       });
     }
   });

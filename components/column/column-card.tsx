@@ -323,7 +323,7 @@ export function ColumnCard({ column }: { column: Column }) {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
           style={{
-            background: `linear-gradient(90deg, transparent, ${type.accent}, transparent)`,
+            background: `linear-gradient(90deg, transparent, ${column.color ?? type.accent}, transparent)`,
           }}
         />
         <div
@@ -400,7 +400,7 @@ export function ColumnCard({ column }: { column: Column }) {
           <span
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
-            style={{ background: `linear-gradient(90deg, transparent, ${type.accent}, transparent)` }}
+            style={{ background: `linear-gradient(90deg, transparent, ${column.color ?? type.accent}, transparent)` }}
           />
           <button
             type="button"
@@ -419,10 +419,18 @@ export function ColumnCard({ column }: { column: Column }) {
           </div>
           <div className="min-w-0 flex-1">
             <div
-              className="truncate text-[13px] font-medium leading-tight text-foreground"
+              className="flex items-center gap-1.5 truncate text-[13px] font-medium leading-tight text-foreground"
               style={{ letterSpacing: "-0.01em" }}
             >
-              {column.title}
+              {column.color && (
+                <span
+                  aria-label="Column color label"
+                  title={`Color label ${column.color}`}
+                  className="size-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                  style={{ backgroundColor: column.color }}
+                />
+              )}
+              <span className="truncate">{column.title}</span>
             </div>
             <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
               <span className="truncate">{type.label}</span>

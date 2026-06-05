@@ -198,6 +198,19 @@ export interface Column {
    * with priority columns already pinned.
    */
   pinned?: boolean;
+  /**
+   * Optional 6-char hex color label (e.g. `#f97316`). When set, the column
+   * renders a small color dot in the expanded header and replaces the top
+   * accent gradient on the collapsed strip — letting operators apply a
+   * group-level color code (DeFi orange, GitHub blue, social purple) for
+   * at-a-glance deck scanning. Independent of tab groups (which hide/show)
+   * and pin (which reorders): color is the "what kind of column is this"
+   * marker layered on top of both. Round-trips through export / import /
+   * share links (not a secret); a starter template can ship with priority
+   * lanes pre-colored. Server-validated to `/^#[0-9a-f]{6}$/i` and
+   * normalized to lowercase; anything that doesn't match is dropped.
+   */
+  color?: string;
   items: FeedItem[];
   lastFetchedAt?: string;
 }
