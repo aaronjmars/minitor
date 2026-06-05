@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Clock, EyeOff, Filter, LayoutGrid, Pin, Webhook } from "lucide-react";
+import { Bell, Clock, EyeOff, Filter, LayoutGrid, Palette, Pin, Webhook } from "lucide-react";
 
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { getColumnType } from "@/lib/columns/registry";
 import { useDeckStore } from "@/lib/store/use-deck-store";
 import { parseAlertKeywords } from "@/lib/columns/keyword-match";
@@ -36,10 +37,34 @@ interface Props {
 
 const ALERT_KEYWORDS_MAX = 512;
 const TAB_GROUP_MAX = 50;
+const COLOR_HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 function normalizeTabGroup(raw: string): string {
   return raw.replace(/\s+/g, " ").trim().slice(0, TAB_GROUP_MAX);
 }
+
+function normalizeHexColor(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  if (!COLOR_HEX_RE.test(trimmed)) return null;
+  return trimmed.toLowerCase();
+}
+
+// Preset swatches. Tuned to read distinctly against both the light and dark
+// surface tones used elsewhere in the app (no near-whites, no near-blacks).
+// The empty (no-color) state is offered as a "Clear" affordance separately
+// rather than as a swatch — a "no color" swatch and a real color swatch read
+// the same in the row and would confuse the operator.
+const COLOR_SWATCHES: { value: string; label: string }[] = [
+  { value: "#f97316", label: "Orange" }, // DeFi / on-chain default
+  { value: "#22c55e", label: "Green" },  // markets / portfolio
+  { value: "#3b82f6", label: "Blue" },   // dev / GitHub
+  { value: "#a855f7", label: "Purple" }, // social
+  { value: "#ec4899", label: "Pink" },   // creators / video
+  { value: "#eab308", label: "Yellow" }, // news / alerts-adjacent
+  { value: "#06b6d4", label: "Cyan" },   // research / AI
+  { value: "#94a3b8", label: "Slate" },  // archival / low-priority
+];
 
 // Sentinel for the Select value when the operator chooses "Manual only" —
 // Radix's Select disallows empty-string values, so we use a non-numeric token
@@ -69,6 +94,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const updateFilters = useDeckStore((s) => s.updateFilters);
   const updateTabGroup = useDeckStore((s) => s.updateTabGroup);
   const updatePinned = useDeckStore((s) => s.updatePinned);
+  const updateColor = useDeckStore((s) => s.updateColor);
 
   const [draft, setDraft] = useState<Record<string, unknown>>(column.config);
   const [alertDraft, setAlertDraft] = useState<string>(
@@ -92,6 +118,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
   const [pinnedDraft, setPinnedDraft] = useState<boolean>(
     column.pinned === true,
   );
+  const [colorDraft, setColorDraft] = useState<string>(column.color ?? "");
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -104,6 +131,7 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
       setExcludeDraft(column.excludeKeywords ?? "");
       setTabGroupDraft(column.tabGroup ?? "");
       setPinnedDraft(column.pinned === true);
+      setColorDraft(column.color ?? "");
     }
   }
 
@@ -163,8 +191,19 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
     if (pinnedDraft !== (column.pinned === true)) {
       updatePinned(column.id, pinnedDraft);
     }
+    // Normalize before the equality check so "#F97316", " #f97316 " and
+    // "#f97316" all map to the same canonical value and don't trigger a
+    // spurious update.
+    const nextColor = normalizeHexColor(colorDraft) ?? "";
+    if (nextColor !== (column.color ?? "")) {
+      updateColor(column.id, nextColor);
+    }
     onOpenChange(false);
   }
+
+  const colorInputInvalid =
+    colorDraft.trim().length > 0 && normalizeHexColor(colorDraft) === null;
+  const previewColor = normalizeHexColor(colorDraft) ?? "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -361,6 +400,75 @@ export function ConfigureColumnDialog({ open, onOpenChange, column }: Props) {
                 works within the pinned and unpinned groups.
               </span>
             </label>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="column-color" className="flex items-center gap-1.5">
+              <Palette className="size-3.5" />
+              Color label
+              <span className="text-[11px] font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {COLOR_SWATCHES.map((swatch) => {
+                const isSelected = previewColor === swatch.value;
+                return (
+                  <button
+                    key={swatch.value}
+                    type="button"
+                    aria-label={swatch.label}
+                    aria-pressed={isSelected}
+                    title={swatch.label}
+                    onClick={() => setColorDraft(swatch.value)}
+                    className={cn(
+                      "size-7 shrink-0 rounded-full ring-1 ring-black/10 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                      isSelected
+                        && "ring-2 ring-[color:var(--brand)] ring-offset-2 ring-offset-card",
+                    )}
+                    style={{ backgroundColor: swatch.value }}
+                  />
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setColorDraft("")}
+                aria-pressed={previewColor === ""}
+                title="No color"
+                className={cn(
+                  "ml-1 inline-flex h-7 items-center justify-center rounded-full border border-border bg-surface/40 px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                  previewColor === ""
+                    && "ring-1 ring-[color:var(--brand)] text-foreground",
+                )}
+              >
+                Clear
+              </button>
+            </div>
+            <Input
+              id="column-color"
+              placeholder="#f97316"
+              value={colorDraft}
+              maxLength={7}
+              onChange={(e) => setColorDraft(e.target.value)}
+              aria-invalid={colorInputInvalid}
+              className={cn(
+                colorInputInvalid && "border-destructive focus-visible:ring-destructive",
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              {colorInputInvalid ? (
+                <span className="text-destructive">
+                  Enter a 6-digit hex color (e.g. <code>#f97316</code>) or pick
+                  a preset above.
+                </span>
+              ) : (
+                <>
+                  Group columns visually at a glance — e.g. orange for DeFi,
+                  blue for repos. Shows as a dot in the column header and as
+                  the accent line on the collapsed strip.
+                </>
+              )}
+            </p>
           </div>
 
           <div className="grid gap-1.5">

@@ -26,6 +26,8 @@ import {
   updateColumnFilters as serverUpdateFilters,
   updateColumnTabGroup as serverUpdateTabGroup,
   updateColumnPinned as serverUpdatePinned,
+  updateColumnColor as serverUpdateColor,
+  normalizeColumnColor,
   loadDeckSnapshots as serverLoadDeckSnapshots,
   restoreDeckSnapshot as serverRestoreDeckSnapshot,
   isAllowedRefreshInterval,
@@ -104,6 +106,7 @@ interface DeckState {
   ) => void;
   updateTabGroup: (columnId: string, tabGroup: string) => void;
   updatePinned: (columnId: string, pinned: boolean) => void;
+  updateColor: (columnId: string, color: string) => void;
   renameColumn: (columnId: string, title: string) => void;
   removeColumn: (columnId: string) => void;
   reorderColumnsInDeck: (deckId: string, order: string[]) => void;
@@ -143,6 +146,7 @@ function importedDeckPatch(
       excludeKeywords: c.excludeKeywords,
       tabGroup: c.tabGroup,
       pinned: c.pinned,
+      color: c.color,
       items: [],
     };
   }
@@ -347,6 +351,11 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
             // duplicates land unpinned regardless of source state, mirroring
             // PR #59's "DnD across pin/unpin no-op" rule.
             pinned: undefined,
+            // Color IS inherited — unlike pinned, color is a visual labeling
+            // decision about what kind of column this is, not a routing
+            // decision about where the column sits in the deck. A duplicated
+            // DeFi-orange column is still a DeFi column.
+            color: source.color,
             items: [],
           },
         },
@@ -498,6 +507,27 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       };
     });
     fireAndLog("updateColumnPinned", serverUpdatePinned(columnId, next));
+  },
+
+  updateColor: (columnId, color) => {
+    // Mirror the server-side normalizer exactly so the optimistic state can't
+    // diverge from what the DB will actually persist. An empty string or any
+    // non-hex input clears the color (undefined / NULL on the wire).
+    const next = normalizeColumnColor(color);
+    set((s) => {
+      const col = s.columns[columnId];
+      if (!col) return s;
+      return {
+        columns: {
+          ...s.columns,
+          [columnId]: {
+            ...col,
+            color: next ?? undefined,
+          },
+        },
+      };
+    });
+    fireAndLog("updateColumnColor", serverUpdateColor(columnId, color));
   },
 
   renameColumn: (columnId, title) => {

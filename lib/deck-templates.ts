@@ -47,6 +47,12 @@ export interface DeckTemplateColumn {
   // the front of the deck so it stays visible regardless of active tab and DnD
   // reorder. Round-trips through importDeck.
   pinned?: boolean;
+  // Optional color label (6-char hex `#rrggbb`). Let a multi-category starter
+  // deck ship with pre-colored lanes (e.g. orange for DeFi, blue for repos,
+  // purple for social) so the visual grouping is immediate on first import.
+  // Round-trips through importDeck — re-validated against the same hex regex
+  // and dropped if it doesn't match.
+  color?: string;
 }
 
 export interface DeckTemplatePayload {

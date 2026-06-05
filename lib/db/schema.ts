@@ -32,6 +32,7 @@ export const columns = pgTable("columns", {
   excludeKeywords: text("exclude_keywords"),
   tabGroup: text("tab_group"),
   pinned: boolean("pinned").notNull().default(false),
+  color: text("color"),
   position: integer("position").notNull().default(0),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
