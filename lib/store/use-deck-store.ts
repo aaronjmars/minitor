@@ -43,6 +43,18 @@ import {
 // the deck-board can compare without re-deriving the string in both files.
 export const TAB_GROUP_ALL = "__all__";
 
+/**
+ * Three-step column width. Absence from `widthByColumn` (the common case)
+ * means "normal" — a 360px column, the historical default and the only width
+ * before this feature shipped. Width is view-state only (NOT persisted to the
+ * DB, NOT round-tripped through export/import), matching the pattern of
+ * `collapsedColumnIds` and `searchByColumn`: "what defines the deck's
+ * identity" stays in the DB; "how the operator is reading it right now" stays
+ * in memory. The deck export/share-link envelope is unchanged; reloading the
+ * page returns every column to 360px.
+ */
+export type ColumnWidth = "narrow" | "wide";
+
 interface DeckState {
   hydrated: boolean;
   decks: Record<string, Deck>;
@@ -74,11 +86,27 @@ interface DeckState {
    * widens past what the persisted filters allow.
    */
   searchByColumn: Record<string, string>;
+  /**
+   * Per-column width override. NOT persisted (view state only) — same lifetime
+   * as `collapsedColumnIds`/`searchByColumn`. Absence means the historical
+   * 360px default; `"narrow"` is 240px (good for crypto price columns), `"wide"`
+   * is 480px (good for headline-heavy news feeds). Setting a width does not
+   * affect collapse: a collapsed-narrow column is still the same 48px strip
+   * collapse always shows. Width re-applies on expand from the in-memory map.
+   */
+  widthByColumn: Record<string, ColumnWidth>;
 
   hydrate: (snapshot: Snapshot) => void;
   setSelectedTab: (deckId: string, tab: string) => void;
   toggleColumnCollapsed: (columnId: string) => void;
   setColumnSearch: (columnId: string, query: string) => void;
+  /**
+   * Set this column's width override. Pass `null` to clear back to the default
+   * 360px (the absence-from-map state). Passing the same width the column
+   * already has is a no-op — the menu items use this for the "set to this
+   * width" action and treat a re-click as toggling back to normal.
+   */
+  setColumnWidth: (columnId: string, width: ColumnWidth | null) => void;
 
   addDeck: (name: string) => string;
   renameDeck: (deckId: string, name: string) => void;
@@ -184,6 +212,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
   selectedTabByDeck: {},
   collapsedColumnIds: new Set<string>(),
   searchByColumn: {},
+  widthByColumn: {},
 
   hydrate: (snapshot) =>
     set((s) => ({
@@ -223,6 +252,25 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         next[columnId] = trimmed;
       }
       return { searchByColumn: next };
+    }),
+
+  setColumnWidth: (columnId, width) =>
+    set((s) => {
+      const next = { ...s.widthByColumn };
+      if (width === null || width === "narrow" || width === "wide") {
+        if (width === null) {
+          // Clearing back to the absence-from-map state — same shape as
+          // setColumnSearch with an empty query. Delete instead of writing a
+          // sentinel so the map only carries non-default rows.
+          if (!(columnId in next)) return s;
+          delete next[columnId];
+        } else {
+          if (next[columnId] === width) return s;
+          next[columnId] = width;
+        }
+        return { widthByColumn: next };
+      }
+      return s;
     }),
 
   addDeck: (name) => {
@@ -277,6 +325,8 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       for (const cid of deck.columnIds) collapsed.delete(cid);
       const searchByColumn = { ...s.searchByColumn };
       for (const cid of deck.columnIds) delete searchByColumn[cid];
+      const widthByColumn = { ...s.widthByColumn };
+      for (const cid of deck.columnIds) delete widthByColumn[cid];
       return {
         decks,
         columns: cols,
@@ -284,6 +334,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         activeDeckId,
         collapsedColumnIds: collapsed,
         searchByColumn,
+        widthByColumn,
       };
     });
     fireAndLog("deleteDeck", serverDeleteDeck(deckId));
@@ -577,7 +628,15 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       collapsed.delete(columnId);
       const searchByColumn = { ...s.searchByColumn };
       delete searchByColumn[columnId];
-      return { columns: cols, decks, collapsedColumnIds: collapsed, searchByColumn };
+      const widthByColumn = { ...s.widthByColumn };
+      delete widthByColumn[columnId];
+      return {
+        columns: cols,
+        decks,
+        collapsedColumnIds: collapsed,
+        searchByColumn,
+        widthByColumn,
+      };
     });
     fireAndLog("deleteColumn", serverDeleteColumn(columnId));
   },
