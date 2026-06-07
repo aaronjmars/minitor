@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useMemo } from "react";
 import {
   Bell,
+  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -14,6 +15,8 @@ import {
   Filter,
   GripVertical,
   Loader2,
+  Maximize2,
+  Minimize2,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -65,6 +68,13 @@ export function ColumnCard({ column }: { column: Column }) {
   const toggleColumnCollapsed = useDeckStore((s) => s.toggleColumnCollapsed);
   const searchQuery = useDeckStore((s) => s.searchByColumn[column.id] ?? "");
   const setColumnSearch = useDeckStore((s) => s.setColumnSearch);
+  // Three-step width override (view-state only). Absence = "normal" (360px),
+  // the historical default. Narrow drops to 240px for densest signal-per-px
+  // (price columns, ticker lists); wide rises to 480px for headline feeds
+  // whose text wraps badly at 360. Collapsed columns ignore this — collapse
+  // owns its own 48px strip and the saved width re-applies on expand.
+  const columnWidth = useDeckStore((s) => s.widthByColumn[column.id] ?? null);
+  const setColumnWidth = useDeckStore((s) => s.setColumnWidth);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -287,6 +297,19 @@ export function ColumnCard({ column }: { column: Column }) {
 
   const beamActive = isFetching || isAutoFetching;
 
+  // Resolved width classes. Mobile (<sm) keeps the existing
+  // `min(360px, calc(100vw-1rem))` clamp regardless of width override — narrow
+  // decks already snap to the viewport on mobile, and a 480px wide column
+  // would overflow the available width. Width override applies on desktop only.
+  // The default branch (null) preserves the historical sm:w-[360px] exactly so
+  // every existing column renders identically until the operator opts in.
+  const widthClass =
+    columnWidth === "narrow"
+      ? "w-[min(360px,calc(100vw-1rem))] sm:w-[240px]"
+      : columnWidth === "wide"
+        ? "w-[min(480px,calc(100vw-1rem))] sm:w-[480px]"
+        : "w-[min(360px,calc(100vw-1rem))] sm:w-[360px]";
+
   // Collapsed view: render a narrow 48px vertical strip instead of the full
   // 360px column. The strip keeps brand-accent + icon + a rotated title so the
   // operator can still see what they collapsed, plus refresh-state and match
@@ -386,7 +409,8 @@ export function ColumnCard({ column }: { column: Column }) {
         data-beam-active={beamActive ? "true" : "false"}
         data-beam-variant="fetch"
         className={cn(
-          "beam-frame relative h-full w-[min(360px,calc(100vw-1rem))] shrink-0 snap-start shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-shadow sm:w-[360px] sm:snap-none hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
+          "beam-frame relative h-full shrink-0 snap-start shadow-[0_8px_24px_-16px_rgba(0,0,0,0.12)] transition-[box-shadow,width] sm:snap-none hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.18)]",
+          widthClass,
           isDragging &&
             "cursor-grabbing shadow-[0_24px_60px_-20px_rgba(0,0,0,0.32)] ring-1 ring-foreground/10",
         )}
@@ -623,6 +647,28 @@ export function ColumnCard({ column }: { column: Column }) {
               >
                 <Download className="mr-2 size-4" />{" "}
                 {hasItems ? "Download items (JSON)" : "No items loaded yet"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setColumnWidth(column.id, "narrow")}>
+                <Minimize2 className="mr-2 size-4" />
+                <span className="flex-1">Narrow width</span>
+                {columnWidth === "narrow" && (
+                  <Check className="ml-2 size-3.5 text-[color:var(--brand)]" aria-hidden />
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setColumnWidth(column.id, null)}>
+                <span className="mr-2 inline-block size-4" aria-hidden />
+                <span className="flex-1">Normal width</span>
+                {columnWidth === null && (
+                  <Check className="ml-2 size-3.5 text-[color:var(--brand)]" aria-hidden />
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setColumnWidth(column.id, "wide")}>
+                <Maximize2 className="mr-2 size-4" />
+                <span className="flex-1">Wide width</span>
+                {columnWidth === "wide" && (
+                  <Check className="ml-2 size-3.5 text-[color:var(--brand)]" aria-hidden />
+                )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
