@@ -79,6 +79,10 @@ export function ColumnCard({ column }: { column: Column }) {
   const setFocusedColumn = useDeckStore((s) => s.setFocusedColumn);
   const pendingSearchOpen = useDeckStore((s) => s.pendingSearchOpen);
   const clearPendingSearchOpen = useDeckStore((s) => s.clearPendingSearchOpen);
+  const isPendingRefresh = useDeckStore((s) =>
+    s.pendingRefreshIds.has(column.id),
+  );
+  const clearPendingRefresh = useDeckStore((s) => s.clearPendingRefresh);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -244,7 +248,7 @@ export function ColumnCard({ column }: { column: Column }) {
     return () => clearInterval(handle);
   }, [applyFetchedItems, column.id, column.refreshIntervalSeconds]);
 
-  async function onRefresh() {
+  async function onRefresh(opts?: { quiet?: boolean }) {
     if (!type) return;
     setIsFetching(true);
     try {
@@ -255,9 +259,17 @@ export function ColumnCard({ column }: { column: Column }) {
       const count = await applyFetchedItems(column.id, items);
       // Reset pagination cursor on a fresh refresh.
       setNextCursor(paginated ? (cursor ?? null) : undefined);
-      toast.success(count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items", {
-        description: column.title,
-      });
+      // Store-routed refreshes (deck-header "Refresh all", `r` / Shift-`R`)
+      // pass `quiet` so a 12-column sweep doesn't stack a dozen success
+      // toasts on top of the deck-header's aggregate "Refreshing N columns"
+      // toast — the per-column beam animation is the success feedback there.
+      // Errors stay loud below regardless: the operator explicitly asked for
+      // this fetch, unlike the fully-silent interval auto-refresh.
+      if (!opts?.quiet) {
+        toast.success(count > 0 ? `${count} new item${count === 1 ? "" : "s"}` : "No new items", {
+          description: column.title,
+        });
+      }
     } catch (err) {
       toast.error("Fetch failed", {
         description: err instanceof Error ? err.message : "Unknown error",
@@ -266,6 +278,37 @@ export function ColumnCard({ column }: { column: Column }) {
       setIsFetching(false);
     }
   }
+
+  // React to the deck-header "Refresh all" button + the `r` / Shift-`R`
+  // keyboard shortcuts routed via the store. Each column drains its own id
+  // from `pendingRefreshIds` when the fetch *settles* (success or failure),
+  // not when it fires — so the Set tracks real in-flight state and the
+  // deck-header spinner spins for the duration of the sweep instead of one
+  // frame. Leaving the id pending mid-flight also makes a second "Refresh
+  // all" click a true no-op (requestRefreshColumns dedupes against pending
+  // ids). The `.finally` closure survives unmount — switching tabs mid-flight
+  // still drains the id, so a column that left the screen can't strand the
+  // header spinner. `refreshInFlightRef` guards the window where the fetch
+  // has fired but `isFetching` hasn't re-rendered as true yet; the
+  // `isFetching` bail-out additionally defers a store-routed refresh until a
+  // manually-triggered fetch completes, so two fetches never race against the
+  // same column. `onRefreshRef` captures the latest `onRefresh` without
+  // forcing the effect to re-run on every render (it would otherwise depend
+  // on a fresh function reference and tear down its own subscription
+  // mid-tick).
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
+  const refreshInFlightRef = useRef(false);
+  useEffect(() => {
+    if (!isPendingRefresh) return;
+    if (isFetching) return;
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    void onRefreshRef.current({ quiet: true }).finally(() => {
+      refreshInFlightRef.current = false;
+      clearPendingRefresh(column.id);
+    });
+  }, [isPendingRefresh, isFetching, column.id, clearPendingRefresh]);
 
   async function onLoadMore() {
     if (!paginated) return;
@@ -605,7 +648,7 @@ export function ColumnCard({ column }: { column: Column }) {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
-              onClick={onRefresh}
+              onClick={() => onRefresh()}
               disabled={isFetching}
               title="Refresh"
               aria-label="Refresh"

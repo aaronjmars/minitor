@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { AnyColumnUI, Column, Deck, FeedItem } from "@/lib/columns/types";
 import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
 import { callColumnApi } from "@/lib/columns/api-client";
+import { getColumnType } from "@/lib/columns/registry";
 import {
   createColumn as serverCreateColumn,
   createDeck as serverCreateDeck,
@@ -42,6 +43,48 @@ import {
 // configured but the operator wants to see every column at once. Exported so
 // the deck-board can compare without re-deriving the string in both files.
 export const TAB_GROUP_ALL = "__all__";
+
+/**
+ * The ordered list of column ids the deck-board actually mounts for a deck
+ * under a tab selection. Pinned columns stay visible on every tab — that's the
+ * point of pinning, and the Configure copy + header tooltip promise it.
+ * Untagged columns ride along with every named tab too — otherwise an operator
+ * who partially groups a deck loses their unlabeled columns every time they
+ * click a tab, which reads as broken. Pinned columns then render before every
+ * unpinned column regardless of stored position; the partition is stable, so
+ * relative order within each group is preserved and the underlying
+ * deck.columnIds order (used by reorderColumnsInDeck and the SortableContext)
+ * is untouched.
+ *
+ * Shared by the deck-board's render memo and the deck-header "Refresh all"
+ * button so "what refreshes" can never drift from "what's mounted": a refresh
+ * signal aimed at a column the tab filter keeps unmounted would sit in
+ * `pendingRefreshIds` forever (nothing mounts to drain it), pin the header
+ * spinner on, and fire a surprise refresh whenever the operator later switches
+ * tabs.
+ */
+export function getVisibleColumnIds(
+  deck: Deck,
+  columns: Record<string, Column>,
+  selectedTab: string,
+): string[] {
+  const tabFiltered =
+    selectedTab === TAB_GROUP_ALL
+      ? deck.columnIds
+      : deck.columnIds.filter((id) => {
+          const col = columns[id];
+          return (
+            col?.pinned || !col || !col.tabGroup || col.tabGroup === selectedTab
+          );
+        });
+  const pinned: string[] = [];
+  const unpinned: string[] = [];
+  for (const id of tabFiltered) {
+    if (columns[id]?.pinned) pinned.push(id);
+    else unpinned.push(id);
+  }
+  return pinned.length === 0 ? tabFiltered : [...pinned, ...unpinned];
+}
 
 /**
  * Three-step column width. Absence from `widthByColumn` (the common case)
@@ -115,6 +158,19 @@ interface DeckState {
    * a query, and writing a query doesn't open the row.
    */
   pendingSearchOpen: string | null;
+  /**
+   * Set of column ids that have been asked to refresh on their next render
+   * tick. Populated by the deck-header "Refresh all" button and the `r` /
+   * Shift-`R` keyboard shortcuts; each column drains its own id once the
+   * triggered fetch *settles* (not when it fires), so the Set doubles as a
+   * live in-flight indicator for the deck-header spinner and a second click
+   * while a fetch is in flight is a true no-op (`requestRefreshColumns`
+   * dedupes against still-pending ids). Modelled as a Set of column ids rather
+   * than a boolean so a parallel sweep across 15 columns lands on every column
+   * exactly once, not just the last one rendered. View-state-only — clears on
+   * reload, same as `pendingSearchOpen` / `focusedColumnId`.
+   */
+  pendingRefreshIds: Set<string>;
 
   hydrate: (snapshot: Snapshot) => void;
   setSelectedTab: (deckId: string, tab: string) => void;
@@ -144,6 +200,21 @@ interface DeckState {
    * different column.
    */
   clearPendingSearchOpen: (columnId: string) => void;
+  /**
+   * Ask one or more columns to refresh on their next render tick. Triggered by
+   * the deck-header "Refresh all" button (full deck) and the `r` /
+   * Shift-`R` keyboard shortcuts (focused / visible). Dedupes against
+   * already-pending ids so a second click while a fetch is in flight doesn't
+   * double-enqueue. Empty array is a no-op.
+   */
+  requestRefreshColumns: (columnIds: string[]) => void;
+  /**
+   * Called by a column once the refresh it fired in response to a
+   * pending-refresh signal has settled (success or failure), to drain its id
+   * from the set. A no-op when the id isn't pending — Set membership is the
+   * source of truth, not a counter.
+   */
+  clearPendingRefresh: (columnId: string) => void;
 
   addDeck: (name: string) => string;
   renameDeck: (deckId: string, name: string) => void;
@@ -251,6 +322,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
   searchByColumn: {},
   focusedColumnId: null,
   pendingSearchOpen: null,
+  pendingRefreshIds: new Set<string>(),
   widthByColumn: {},
 
   hydrate: (snapshot) =>
@@ -325,6 +397,36 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
   clearPendingSearchOpen: (columnId) =>
     set((s) => (s.pendingSearchOpen === columnId ? { pendingSearchOpen: null } : s)),
 
+  requestRefreshColumns: (columnIds) =>
+    set((s) => {
+      if (columnIds.length === 0) return s;
+      // Skip ids that don't exist anymore (deck-header click race vs. delete);
+      // skip ids already pending so a hot click doesn't double-enqueue.
+      let added = 0;
+      const next = new Set(s.pendingRefreshIds);
+      for (const id of columnIds) {
+        const col = s.columns[id];
+        if (!col) continue;
+        // Skip unregistered column types: their card renders the error shell
+        // and returns before the drain effect mounts, so an enqueued id would
+        // sit in the Set forever and pin the deck-header spinner on.
+        if (!getColumnType(col.typeId)) continue;
+        if (next.has(id)) continue;
+        next.add(id);
+        added += 1;
+      }
+      if (added === 0) return s;
+      return { pendingRefreshIds: next };
+    }),
+
+  clearPendingRefresh: (columnId) =>
+    set((s) => {
+      if (!s.pendingRefreshIds.has(columnId)) return s;
+      const next = new Set(s.pendingRefreshIds);
+      next.delete(columnId);
+      return { pendingRefreshIds: next };
+    }),
+
   addDeck: (name) => {
     const id = nanoid();
     set((s) => ({
@@ -387,6 +489,18 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         s.pendingSearchOpen && deck.columnIds.includes(s.pendingSearchOpen)
           ? null
           : s.pendingSearchOpen;
+      // Drop any refresh signals tied to columns about to vanish so a
+      // freshly-deleted column can't keep firing onRefresh from a dangling
+      // signal in the next render tick.
+      const deckColumnSet = new Set(deck.columnIds);
+      let pendingRefreshIds = s.pendingRefreshIds;
+      for (const id of pendingRefreshIds) {
+        if (deckColumnSet.has(id)) {
+          pendingRefreshIds = new Set(s.pendingRefreshIds);
+          for (const cid of deck.columnIds) pendingRefreshIds.delete(cid);
+          break;
+        }
+      }
       return {
         decks,
         columns: cols,
@@ -397,6 +511,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         widthByColumn,
         focusedColumnId,
         pendingSearchOpen,
+        pendingRefreshIds,
       };
     });
     fireAndLog("deleteDeck", serverDeleteDeck(deckId));
@@ -696,6 +811,11 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         s.focusedColumnId === columnId ? null : s.focusedColumnId;
       const pendingSearchOpen =
         s.pendingSearchOpen === columnId ? null : s.pendingSearchOpen;
+      let pendingRefreshIds = s.pendingRefreshIds;
+      if (pendingRefreshIds.has(columnId)) {
+        pendingRefreshIds = new Set(s.pendingRefreshIds);
+        pendingRefreshIds.delete(columnId);
+      }
       return {
         columns: cols,
         decks,
@@ -704,6 +824,7 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
         widthByColumn,
         focusedColumnId,
         pendingSearchOpen,
+        pendingRefreshIds,
       };
     });
     fireAndLog("deleteColumn", serverDeleteColumn(columnId));

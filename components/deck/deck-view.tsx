@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { useDeckStore } from "@/lib/store/use-deck-store";
+import {
+  useDeckStore,
+  getVisibleColumnIds,
+  TAB_GROUP_ALL,
+} from "@/lib/store/use-deck-store";
 import { DeckBoard } from "@/components/deck/deck-board";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -11,6 +16,11 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { AppSidebar } from "@/components/sidebar-01/app-sidebar";
 import { Onboarding } from "@/components/onboarding/welcome";
 import { loadSnapshot } from "@/app/actions";
@@ -28,6 +38,21 @@ export function DeckView() {
     s.activeDeckId ? s.decks[s.activeDeckId] : null,
   );
   const setActiveDeck = useDeckStore((s) => s.setActiveDeck);
+  const requestRefreshColumns = useDeckStore((s) => s.requestRefreshColumns);
+  // We render a small spinner on the button while ANY column owned by the
+  // active deck is mid-refresh, so the operator's eye knows the action took
+  // effect even when 12+ columns are off-screen on a wide deck. Subscribing
+  // through a stable boolean keeps the deck-view from re-rendering on every
+  // pending-refresh-id Set mutation.
+  const anyActiveDeckRefreshing = useDeckStore((s) => {
+    if (!s.activeDeckId) return false;
+    const deck = s.decks[s.activeDeckId];
+    if (!deck) return false;
+    for (const id of deck.columnIds) {
+      if (s.pendingRefreshIds.has(id)) return true;
+    }
+    return false;
+  });
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -148,6 +173,41 @@ export function DeckView() {
                 {activeDeck.columnIds.length} column
                 {activeDeck.columnIds.length === 1 ? "" : "s"}
               </span>
+            )}
+            {activeDeck && activeDeck.columnIds.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger
+                  onClick={() => {
+                    // Only enqueue the columns the deck-board actually mounts
+                    // for the active tab (shared getVisibleColumnIds). Columns
+                    // hidden by a tab filter never mount, so their pending ids
+                    // would never drain — the spinner would stick on forever
+                    // and switching tabs later would fire surprise refreshes.
+                    const { columns, selectedTabByDeck } =
+                      useDeckStore.getState();
+                    const ids = getVisibleColumnIds(
+                      activeDeck,
+                      columns,
+                      selectedTabByDeck[activeDeck.id] ?? TAB_GROUP_ALL,
+                    );
+                    if (ids.length === 0) return;
+                    requestRefreshColumns(ids);
+                    toast.success(
+                      `Refreshing ${ids.length} column${ids.length === 1 ? "" : "s"}`,
+                      { description: activeDeck.name },
+                    );
+                  }}
+                  title="Refresh all columns"
+                  aria-label="Refresh all columns in this deck"
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface hover:text-[color:var(--brand-hover)]"
+                >
+                  <RefreshCw
+                    className={`size-3.5 ${anyActiveDeckRefreshing ? "animate-spin" : ""}`}
+                    aria-hidden
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Refresh all columns</TooltipContent>
+              </Tooltip>
             )}
           </div>
         </header>
