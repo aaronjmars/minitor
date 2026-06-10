@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { AnyColumnUI, Column, Deck, FeedItem } from "@/lib/columns/types";
 import { MAX_ITEMS_PER_COLUMN } from "@/lib/columns/constants";
 import { callColumnApi } from "@/lib/columns/api-client";
+import { getColumnType } from "@/lib/columns/registry";
 import {
   createColumn as serverCreateColumn,
   createDeck as serverCreateDeck,
@@ -42,6 +43,48 @@ import {
 // configured but the operator wants to see every column at once. Exported so
 // the deck-board can compare without re-deriving the string in both files.
 export const TAB_GROUP_ALL = "__all__";
+
+/**
+ * The ordered list of column ids the deck-board actually mounts for a deck
+ * under a tab selection. Pinned columns stay visible on every tab — that's the
+ * point of pinning, and the Configure copy + header tooltip promise it.
+ * Untagged columns ride along with every named tab too — otherwise an operator
+ * who partially groups a deck loses their unlabeled columns every time they
+ * click a tab, which reads as broken. Pinned columns then render before every
+ * unpinned column regardless of stored position; the partition is stable, so
+ * relative order within each group is preserved and the underlying
+ * deck.columnIds order (used by reorderColumnsInDeck and the SortableContext)
+ * is untouched.
+ *
+ * Shared by the deck-board's render memo and the deck-header "Refresh all"
+ * button so "what refreshes" can never drift from "what's mounted": a refresh
+ * signal aimed at a column the tab filter keeps unmounted would sit in
+ * `pendingRefreshIds` forever (nothing mounts to drain it), pin the header
+ * spinner on, and fire a surprise refresh whenever the operator later switches
+ * tabs.
+ */
+export function getVisibleColumnIds(
+  deck: Deck,
+  columns: Record<string, Column>,
+  selectedTab: string,
+): string[] {
+  const tabFiltered =
+    selectedTab === TAB_GROUP_ALL
+      ? deck.columnIds
+      : deck.columnIds.filter((id) => {
+          const col = columns[id];
+          return (
+            col?.pinned || !col || !col.tabGroup || col.tabGroup === selectedTab
+          );
+        });
+  const pinned: string[] = [];
+  const unpinned: string[] = [];
+  for (const id of tabFiltered) {
+    if (columns[id]?.pinned) pinned.push(id);
+    else unpinned.push(id);
+  }
+  return pinned.length === 0 ? tabFiltered : [...pinned, ...unpinned];
+}
 
 /**
  * Three-step column width. Absence from `widthByColumn` (the common case)
@@ -118,13 +161,14 @@ interface DeckState {
   /**
    * Set of column ids that have been asked to refresh on their next render
    * tick. Populated by the deck-header "Refresh all" button and the `r` /
-   * Shift-`R` keyboard shortcuts; each column drains its own id on receipt so a
-   * second click while a fetch is in flight is a no-op (the set never contains
-   * a duplicate, and the column won't re-fire while it's still mid-refresh).
-   * Modelled as a Set of column ids rather than a boolean so a parallel sweep
-   * across 15 columns lands on every column exactly once, not just the last
-   * one rendered. View-state-only — clears on reload, same as
-   * `pendingSearchOpen` / `focusedColumnId`.
+   * Shift-`R` keyboard shortcuts; each column drains its own id once the
+   * triggered fetch *settles* (not when it fires), so the Set doubles as a
+   * live in-flight indicator for the deck-header spinner and a second click
+   * while a fetch is in flight is a true no-op (`requestRefreshColumns`
+   * dedupes against still-pending ids). Modelled as a Set of column ids rather
+   * than a boolean so a parallel sweep across 15 columns lands on every column
+   * exactly once, not just the last one rendered. View-state-only — clears on
+   * reload, same as `pendingSearchOpen` / `focusedColumnId`.
    */
   pendingRefreshIds: Set<string>;
 
@@ -165,9 +209,10 @@ interface DeckState {
    */
   requestRefreshColumns: (columnIds: string[]) => void;
   /**
-   * Called by a column once its refresh has been fired in response to a
-   * pending-refresh signal, to drain its id from the set. A no-op when the
-   * id isn't pending — Set membership is the source of truth, not a counter.
+   * Called by a column once the refresh it fired in response to a
+   * pending-refresh signal has settled (success or failure), to drain its id
+   * from the set. A no-op when the id isn't pending — Set membership is the
+   * source of truth, not a counter.
    */
   clearPendingRefresh: (columnId: string) => void;
 
@@ -360,7 +405,12 @@ export const useDeckStore = create<DeckState>()((set, get) => ({
       let added = 0;
       const next = new Set(s.pendingRefreshIds);
       for (const id of columnIds) {
-        if (!s.columns[id]) continue;
+        const col = s.columns[id];
+        if (!col) continue;
+        // Skip unregistered column types: their card renders the error shell
+        // and returns before the drain effect mounts, so an enqueued id would
+        // sit in the Set forever and pin the deck-header spinner on.
+        if (!getColumnType(col.typeId)) continue;
         if (next.has(id)) continue;
         next.add(id);
         added += 1;

@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { useDeckStore } from "@/lib/store/use-deck-store";
+import {
+  useDeckStore,
+  getVisibleColumnIds,
+  TAB_GROUP_ALL,
+} from "@/lib/store/use-deck-store";
 import { DeckBoard } from "@/components/deck/deck-board";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -172,25 +176,35 @@ export function DeckView() {
             )}
             {activeDeck && activeDeck.columnIds.length > 0 && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Refresh all columns in this deck"
-                    onClick={() => {
-                      const ids = activeDeck.columnIds;
-                      requestRefreshColumns(ids);
-                      toast.success(
-                        `Refreshing ${ids.length} column${ids.length === 1 ? "" : "s"}`,
-                        { description: activeDeck.name },
-                      );
-                    }}
-                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface hover:text-[color:var(--brand-hover)]"
-                  >
-                    <RefreshCw
-                      className={`size-3.5 ${anyActiveDeckRefreshing ? "animate-spin" : ""}`}
-                      aria-hidden
-                    />
-                  </button>
+                <TooltipTrigger
+                  onClick={() => {
+                    // Only enqueue the columns the deck-board actually mounts
+                    // for the active tab (shared getVisibleColumnIds). Columns
+                    // hidden by a tab filter never mount, so their pending ids
+                    // would never drain — the spinner would stick on forever
+                    // and switching tabs later would fire surprise refreshes.
+                    const { columns, selectedTabByDeck } =
+                      useDeckStore.getState();
+                    const ids = getVisibleColumnIds(
+                      activeDeck,
+                      columns,
+                      selectedTabByDeck[activeDeck.id] ?? TAB_GROUP_ALL,
+                    );
+                    if (ids.length === 0) return;
+                    requestRefreshColumns(ids);
+                    toast.success(
+                      `Refreshing ${ids.length} column${ids.length === 1 ? "" : "s"}`,
+                      { description: activeDeck.name },
+                    );
+                  }}
+                  title="Refresh all columns"
+                  aria-label="Refresh all columns in this deck"
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface hover:text-[color:var(--brand-hover)]"
+                >
+                  <RefreshCw
+                    className={`size-3.5 ${anyActiveDeckRefreshing ? "animate-spin" : ""}`}
+                    aria-hidden
+                  />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Refresh all columns</TooltipContent>
               </Tooltip>
