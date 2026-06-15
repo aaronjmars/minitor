@@ -359,7 +359,7 @@ export async function fetchCommits(
     return {
       id: `ghc-${c.sha}`,
       author: {
-        name: c.author?.login ?? c.commit.author?.name ?? "unknown",
+        name: handle,
         handle,
         avatarUrl:
           c.author?.avatar_url ??
