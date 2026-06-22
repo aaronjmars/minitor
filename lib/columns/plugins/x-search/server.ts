@@ -13,7 +13,10 @@ const fetch: ServerFetcher<XSearchConfig, TweetMeta> = async (
   config,
   cursor,
 ) => {
-  const items = (await grokXSearch(config.query, 30)) as FeedItem<TweetMeta>[];
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+
+  const items = (await grokXSearch(q, 30)) as FeedItem<TweetMeta>[];
   return sliceForPage(items, cursor);
 };
 
