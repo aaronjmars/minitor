@@ -17,10 +17,10 @@ const fetch: ServerFetcher<FacebookConfig, FacebookMeta> = async (
   config,
   cursor,
 ) => {
-  const items = (await grokFacebookSearch(
-    config.query,
-    30,
-  )) as FeedItem<FacebookMeta>[];
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+
+  const items = (await grokFacebookSearch(q, 30)) as FeedItem<FacebookMeta>[];
   return sliceForPage(items, cursor);
 };
 

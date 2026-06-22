@@ -17,8 +17,11 @@ const fetch: ServerFetcher<GoogleNewsConfig, GoogleNewsMeta> = async (
   config,
   cursor,
 ) => {
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+
   const items = (await fetchFeed(
-    googleNewsUrl(config.query, config.hl, config.gl),
+    googleNewsUrl(q, config.hl, config.gl),
     50,
   )) as FeedItem<GoogleNewsMeta>[];
   return sliceForPage(items, cursor);

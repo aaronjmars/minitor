@@ -16,10 +16,10 @@ const fetch: ServerFetcher<InstagramConfig, InstagramMeta> = async (
   config,
   cursor,
 ) => {
-  const items = (await fetchInstagram(
-    config.query,
-    30,
-  )) as FeedItem<InstagramMeta>[];
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+
+  const items = (await fetchInstagram(q, 30)) as FeedItem<InstagramMeta>[];
   return sliceForPage(items, cursor);
 };
 

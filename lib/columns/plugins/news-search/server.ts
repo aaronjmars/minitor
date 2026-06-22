@@ -13,10 +13,10 @@ const fetch: ServerFetcher<NewsSearchConfig, NewsSearchMeta> = async (
   config,
   cursor,
 ) => {
-  const items = (await grokNewsSearch(
-    config.query,
-    30,
-  )) as FeedItem<NewsSearchMeta>[];
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+
+  const items = (await grokNewsSearch(q, 30)) as FeedItem<NewsSearchMeta>[];
   return sliceForPage(items, cursor);
 };
 
