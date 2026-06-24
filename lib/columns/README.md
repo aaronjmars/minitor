@@ -70,9 +70,9 @@ client bundle and vice versa.
   if (!q) throw new Error("Search query is required.");
   ```
 
-  Every input-driven column follows this (`linkedin`, `youtube`, `bluesky`,
-  `mastodon`, the `github-*` family). Throwing here is caught by the shared API
-  route and rendered as the column's error state.
+  Most input-driven columns follow this (`linkedin`, `youtube`, `bluesky`,
+  `mastodon`, and the `repo`-based `github-*` columns). Throwing here is caught
+  by the shared API route and surfaced to the user as a fetch-error toast.
 - Keep upstream HTTP clients in `lib/integrations/<source>.ts` and import
   them from `server.ts`. The plugin folder owns the dashboard contract; the
   integrations folder owns the network details.
