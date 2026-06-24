@@ -35,7 +35,10 @@ client bundle and vice versa.
    wrap with `defineColumnUI({ ...meta, ConfigForm, ItemRenderer })`.
 4. **Edit `server.ts`** — implement the `ServerFetcher`. The `config` you
    receive has already been validated against your Zod schema, so `config.foo`
-   is fully typed and present.
+   is fully typed and present. Note that *present* is not *non-empty*: a field
+   declared `z.string().default("")` always exists but can arrive as `""`. If
+   your column needs a value to do anything, guard it before the network call
+   (see the "Validate required inputs" convention below).
 5. **Register both halves**:
    - In `lib/columns/registry.ts`, add an import and append to `ALL`.
    - In `lib/columns/server-registry.ts`, add an import and append to `ALL`.
@@ -57,6 +60,19 @@ client bundle and vice versa.
 
 ## Conventions
 
+- **Validate required inputs at the top of `fetch`.** The Zod schema enforces
+  types, not non-emptiness — `z.string().default("")` lets an empty `query`
+  through. If your column can't run without a value, trim-and-throw before any
+  upstream request so the user sees a clear error instead of a wasted call:
+
+  ```ts
+  const q = config.query.trim();
+  if (!q) throw new Error("Search query is required.");
+  ```
+
+  Most input-driven columns follow this (`linkedin`, `youtube`, `bluesky`,
+  `mastodon`, and the `repo`-based `github-*` columns). Throwing here is caught
+  by the shared API route and surfaced to the user as a fetch-error toast.
 - Keep upstream HTTP clients in `lib/integrations/<source>.ts` and import
   them from `server.ts`. The plugin folder owns the dashboard contract; the
   integrations folder owns the network details.
