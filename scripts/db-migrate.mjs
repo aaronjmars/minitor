@@ -10,12 +10,10 @@ const MIGRATION_DIR = join(ROOT, "drizzle");
 const LOCAL_PGLITE_DIR = join(ROOT, ".minitor", "pgdata");
 
 function resolveKind(url) {
-  if (
-    !url ||
-    url.startsWith("pglite:") ||
-    url.startsWith("file:") ||
-    url.startsWith("memory:")
-  ) {
+  // `memory:` is an ephemeral in-memory database — kept distinct from the
+  // file-backed pglite branch below so migrations don't silently write to disk.
+  if (url.startsWith("memory:")) return "memory";
+  if (!url || url.startsWith("pglite:") || url.startsWith("file:")) {
     return "pglite";
   }
   try {
@@ -26,6 +24,20 @@ function resolveKind(url) {
 }
 
 const kind = resolveKind(rawUrl);
+
+// An in-memory database evaporates when this process exits, so migrating it from
+// a standalone script would persist nothing — the app that later opens `memory:`
+// gets a fresh, empty database. The schema is instead created in-process by
+// whatever opens the DB (e.g. the test suite migrates its own in-memory
+// instance). Skip cleanly rather than writing tables to `.minitor/pgdata`, which
+// the in-memory runtime would never read.
+if (kind === "memory") {
+  console.log(
+    "DATABASE_URL is memory:// (ephemeral in-memory) — nothing to migrate; skipping.\n" +
+      "Unset DATABASE_URL, or use pglite:/file:, for a persistent local database.",
+  );
+  process.exit(0);
+}
 
 const files = (await readdir(MIGRATION_DIR))
   .filter((f) => f.endsWith(".sql"))

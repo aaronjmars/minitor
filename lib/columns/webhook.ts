@@ -54,18 +54,34 @@ function isPrivateIPv4(host: string): boolean {
   return false;
 }
 
-// Block obviously-internal IPv6 literals. `URL.hostname` strips the surrounding
-// brackets, so we match on the bare address. Conservative: anything we can't
+// Extract the embedded IPv4 from an IPv4-mapped IPv6 address, if present. The
+// mapping serializes two ways depending on the runtime: dotted (`::ffff:10.0.0.1`)
+// or, after WHATWG-URL normalization, hex-compressed (`::ffff:a00:1`). Handle
+// both so a private mapped address can't slip through in either form.
+function extractMappedIPv4(host: string): string | null {
+  const dotted = /::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(host);
+  if (dotted) return dotted[1];
+  const hex = /::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+  }
+  return null;
+}
+
+// Block obviously-internal IPv6 literals. Expects a bare address WITHOUT the
+// surrounding brackets — `validateWebhookUrl` strips them first (WHATWG
+// `URL.hostname` KEEPS them, e.g. "[::1]"). Conservative: anything we can't
 // confidently classify as a public address is rejected.
 function isPrivateIPv6(host: string): boolean {
   if (!host.includes(":")) return false;
   const h = host.toLowerCase();
   if (h === "::1" || h === "::") return true; // loopback / unspecified
   if (h.startsWith("fc") || h.startsWith("fd")) return true; // unique-local fc00::/7
-  if (h.startsWith("fe80")) return true; // link-local fe80::/10
-  // IPv4-mapped (::ffff:10.0.0.1) — extract the trailing v4 and re-check.
-  const mapped = /::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(h);
-  if (mapped && isPrivateIPv4(mapped[1])) return true;
+  if (/^fe[89ab]/.test(h)) return true; // link-local fe80::/10 (fe80–febf)
+  const mapped = extractMappedIPv4(h);
+  if (mapped && isPrivateIPv4(mapped)) return true;
   return false;
 }
 
@@ -97,7 +113,14 @@ export function validateWebhookUrl(raw: string): WebhookValidation {
   if (u.protocol !== "https:") {
     return { ok: false, reason: "Webhook URL must use https://" };
   }
-  const host = u.hostname.toLowerCase();
+  // WHATWG `URL.hostname` keeps the brackets on an IPv6 literal ("[::1]"), which
+  // would defeat every IPv6 classifier below. Strip them so the bare address is
+  // what gets checked.
+  const rawHost = u.hostname.toLowerCase();
+  const host =
+    rawHost.startsWith("[") && rawHost.endsWith("]")
+      ? rawHost.slice(1, -1)
+      : rawHost;
   if (
     host === "localhost" ||
     host.endsWith(".localhost") ||

@@ -11,9 +11,10 @@ import * as schema from "@/lib/db/schema";
 // `db` is the Drizzle client used by every server action / API route. The
 // concrete driver is picked at module load based on DATABASE_URL:
 //
-//   - missing / "pglite" / "file:" / "memory:"  → PGlite (local file, default)
-//   - host matches *.neon.tech                  → Neon HTTP driver
-//   - any other postgres:// URL                  → node-postgres pool
+//   - missing / "pglite:" / "file:"  → PGlite (persisted to .minitor/pgdata, default)
+//   - "memory:"                      → PGlite (ephemeral in-memory)
+//   - host matches *.neon.tech       → Neon HTTP driver
+//   - any other postgres:// URL      → node-postgres pool
 //
 // All three return a Drizzle DB whose call surface (.select / .insert /
 // .execute / .update / .delete) is identical, so call sites stay driver-agnostic.
@@ -35,13 +36,16 @@ export function resolveDatabaseConfig(
 ): DatabaseConfig {
   const url = (rawUrl ?? "").trim();
 
-  if (
-    !url ||
-    url.startsWith("pglite:") ||
-    url.startsWith("file:") ||
-    url.startsWith("memory:")
-  ) {
+  if (!url || url.startsWith("pglite:") || url.startsWith("file:")) {
     return { kind: "pglite", pglitePath: LOCAL_PGLITE_DIR };
+  }
+
+  // `memory:` → ephemeral in-memory PGlite (no path). Nothing persists across
+  // process restarts — used by the test suite for an isolated throwaway DB, and
+  // available as a "scratch run" mode. Distinct from the default file-backed
+  // PGlite above, which persists to `.minitor/pgdata`.
+  if (url.startsWith("memory:")) {
+    return { kind: "pglite" };
   }
 
   let host = "";
