@@ -70,7 +70,7 @@ client bundle and vice versa.
   if (!q) throw new Error("Search query is required.");
   ```
 
-  Most input-driven columns follow this (`linkedin`, `youtube`, `bluesky`,
+  Most input-driven columns follow this (`linkedin`, `youtube`, `reddit`,
   `mastodon`, and the `repo`-based `github-*` columns). Throwing here is caught
   by the shared API route and surfaced to the user as a fetch-error toast.
 - Keep upstream HTTP clients in `lib/integrations/<source>.ts` and import

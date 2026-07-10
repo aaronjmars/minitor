@@ -18,12 +18,12 @@
 </p>
 
 > **Monitor the current thing. Your dashboard for the internet.**
-> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Bluesky, Reddit, Hacker News, Lobsters, Stack Overflow, DEV.to, npm + PyPI + crates.io packages, Hugging Face (models / datasets / spaces), arXiv (CS / stat / math.OC papers), GitHub (trending / issues / PRs / stars / forks / backlinks / search / releases / commits / Actions / Discussions), Farcaster, Mastodon, YouTube, RSS, Google News, Bing, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, Polymarket prediction markets, CoinGecko crypto trending + prices, DeFiLlama TVL leaderboard, Dexscreener DEX pair search + watchlist, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
+> Build a deck, pack it with columns, refresh on demand. Each column is a plugin: X, Reddit, Hacker News, Lobsters, Stack Overflow, DEV.to, npm + PyPI + crates.io packages, Hugging Face (models / datasets / spaces), arXiv (CS / stat / math.OC papers), GitHub (trending / issues / PRs / stars / forks / backlinks / search / releases / commits / Actions / Discussions), Farcaster, Mastodon, YouTube, RSS, Google News, Substack, LinkedIn, Facebook, Instagram, Apple + Google Play reviews, on-chain wallet activity, Polymarket prediction markets, CoinGecko crypto trending + prices, DeFiLlama TVL leaderboard, Dexscreener DEX pair search + watchlist, and the six biggest Chinese platforms (Weibo / Zhihu / Douyin / Bilibili / Toutiao / Baidu).
 
 ### What it does
 
 - You name a deck. Minitor packs it with whatever you're watching.
-- 49 column types out of the box — social feeds, news, GitHub (including commits, CI runs, and Discussions), Hugging Face, arXiv, DEV.to, Product Hunt, npm + PyPI + crates.io packages, app reviews, on-chain transactions, prediction markets, CoinGecko prices, DeFiLlama TVL, Dexscreener DEX pairs, Chinese hot boards.
+- 47 column types out of the box — social feeds, news, GitHub (including commits, CI runs, and Discussions), Hugging Face, arXiv, DEV.to, Product Hunt, npm + PyPI + crates.io packages, app reviews, on-chain transactions, prediction markets, CoinGecko prices, DeFiLlama TVL, Dexscreener DEX pairs, Chinese hot boards.
 - Refresh per column or auto-fetch on creation. Load more pages 10 at a time.
 - Shape the signal per column — highlight items with alert keywords, or filter the feed to "show only" / "hide" by keyword so a firehose column shows just what matters.
 - ⌘K command palette over every deck, column, and action. Drag to reorder.
@@ -42,7 +42,7 @@ git clone https://github.com/aaronjmars/minitor.git && cd minitor
 
 The launcher checks Node, picks the right package manager (npm / pnpm / yarn / bun based on lockfile), installs deps, copies `.env.example` → `.env.local` if missing, runs DB migrations against PGlite, and starts the dev server at `http://localhost:3000`. Re-running it just starts the server.
 
-For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https://console.x.ai/)** into `XAI_API_KEY` in `.env.local`. Keyless columns (Reddit, HN, Lobsters, Stack Overflow, DEV.to, Product Hunt, npm, PyPI, crates.io, Hugging Face, arXiv, Bluesky, Mastodon, RSS, Google News, Bing, GitHub, China Hot, YouTube channel/playlist, app reviews, wallet transactions, Polymarket, CoinGecko, DeFiLlama, Dexscreener) work out of the box with no keys.
+For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https://console.x.ai/)** into `XAI_API_KEY` in `.env.local`. Keyless columns (Reddit, HN, Lobsters, Stack Overflow, DEV.to, Product Hunt, npm, PyPI, crates.io, Hugging Face, arXiv, Mastodon, RSS, Google News, GitHub, China Hot, YouTube channel/playlist, app reviews, wallet transactions, Polymarket, CoinGecko, DeFiLlama, Dexscreener) work out of the box with no keys.
 
 **Other launcher subcommands:**
 
@@ -59,9 +59,9 @@ For Grok / X / News / Web / Farcaster columns, paste your **[xAI API key](https:
 
 | Category | Columns |
 |----------|---------|
-| **Social — X / Bluesky / Reddit / HN / Farcaster / Mastodon** (7) | `x-search`, `x-trending`, `bluesky`, `reddit`, `hacker-news`, `farcaster`, `mastodon` |
+| **Social — X / Reddit / HN / Farcaster / Mastodon** (6) | `x-search`, `x-trending`, `reddit`, `hacker-news`, `farcaster`, `mastodon` |
 | **GitHub** (11) | `github-trending`, `github-releases`, `github-issues`, `github-prs`, `github-commits`, `github-stars`, `github-forks`, `github-search`, `github-backlinks`, `github-actions`, `github-discussions` |
-| **News & web** (11) | `bing` (Web search), `google-news`, `news-search`, `rss`, `lobsters`, `stack-overflow`, `devto`, `npm`, `pypi`, `crates`, `producthunt` |
+| **News & web** (10) | `google-news`, `news-search`, `rss`, `lobsters`, `stack-overflow`, `devto`, `npm`, `pypi`, `crates`, `producthunt` |
 | **AI / ML** (2) | `huggingface` (trending models, datasets, spaces), `arxiv` (CS / stat / math.OC papers) |
 | **Long-form & video** (3) | `substack`, `youtube`, `linkedin` |
 | **Mention monitors** (2) | `facebook`, `instagram` |
@@ -89,7 +89,7 @@ Full plugin manifest: [`lib/columns/plugins/manifest.ts`](lib/columns/plugins/ma
 - **Founder dashboard** — your X mentions, Hacker News, Product Hunt RSS, GitHub stars on your repo, App Store reviews, Substack analytics, all on one screen
 - **Crypto desk** — wallet activity across 9 chains, X trending in crypto, Reddit r/cryptocurrency, news search for protocol names
 - **Open-source maintainer** — GitHub trending in your language, new issues / PRs across watched repos, new stargazers + forks, backlinks from HN / Reddit / news for your repo URL
-- **Journalist** — Google News + Bing + xAI news search on a topic, paired with X trending and Reddit threads, plus Substack publications you trust
+- **Journalist** — Google News + xAI news search on a topic, paired with X trending and Reddit threads, plus Substack publications you trust
 - **PM / marketing** — Apple + Google Play reviews on your app, Twitter mentions, LinkedIn / Facebook / Instagram mentions, Substack write-ups
 - **China-watcher** — Weibo, Zhihu, Douyin, Bilibili, Toutiao, and Baidu hot boards in one column stack
 - **Personal radar** — RSS for the blogs that matter, Farcaster for the casts that matter, no algorithmic feed in sight

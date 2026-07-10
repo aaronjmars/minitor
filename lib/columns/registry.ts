@@ -21,7 +21,6 @@ import { column as githubTrending } from "@/lib/columns/plugins/github-trending/
 import { column as githubIssues } from "@/lib/columns/plugins/github-issues/client";
 import { column as rss } from "@/lib/columns/plugins/rss/client";
 import { column as googleNews } from "@/lib/columns/plugins/google-news/client";
-import { column as bing } from "@/lib/columns/plugins/bing/client";
 import { column as farcaster } from "@/lib/columns/plugins/farcaster/client";
 import { column as mastodon } from "@/lib/columns/plugins/mastodon/client";
 import { column as youtube } from "@/lib/columns/plugins/youtube/client";
@@ -44,7 +43,6 @@ import { column as playReviews } from "@/lib/columns/plugins/play-reviews/client
 import { column as githubStars } from "@/lib/columns/plugins/github-stars/client";
 import { column as githubForks } from "@/lib/columns/plugins/github-forks/client";
 import { column as githubReleases } from "@/lib/columns/plugins/github-releases/client";
-import { column as bluesky } from "@/lib/columns/plugins/bluesky/client";
 import { column as lobsters } from "@/lib/columns/plugins/lobsters/client";
 import { column as polymarket } from "@/lib/columns/plugins/polymarket/client";
 import { column as stackOverflow } from "@/lib/columns/plugins/stack-overflow/client";
@@ -75,7 +73,6 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "github-issues": githubIssues,
   rss,
   "google-news": googleNews,
-  bing,
   farcaster,
   mastodon,
   youtube,
@@ -98,7 +95,6 @@ const COLUMNS_BY_ID: Record<string, AnyColumnUI> = {
   "github-stars": githubStars,
   "github-forks": githubForks,
   "github-releases": githubReleases,
-  bluesky,
   lobsters,
   polymarket,
   "stack-overflow": stackOverflow,
