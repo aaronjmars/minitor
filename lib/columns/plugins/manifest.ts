@@ -13,7 +13,6 @@ import { meta as githubTrending } from "./github-trending/plugin";
 import { meta as githubIssues } from "./github-issues/plugin";
 import { meta as rss } from "./rss/plugin";
 import { meta as googleNews } from "./google-news/plugin";
-import { meta as bing } from "./bing/plugin";
 import { meta as farcaster } from "./farcaster/plugin";
 import { meta as mastodon } from "./mastodon/plugin";
 import { meta as youtube } from "./youtube/plugin";
@@ -36,7 +35,6 @@ import { meta as playReviews } from "./play-reviews/plugin";
 import { meta as githubStars } from "./github-stars/plugin";
 import { meta as githubForks } from "./github-forks/plugin";
 import { meta as githubReleases } from "./github-releases/plugin";
-import { meta as bluesky } from "./bluesky/plugin";
 import { meta as lobsters } from "./lobsters/plugin";
 import { meta as polymarket } from "./polymarket/plugin";
 import { meta as stackOverflow } from "./stack-overflow/plugin";
@@ -64,7 +62,6 @@ export const PLUGIN_METAS = [
   githubIssues,
   rss,
   googleNews,
-  bing,
   farcaster,
   mastodon,
   youtube,
@@ -87,7 +84,6 @@ export const PLUGIN_METAS = [
   githubStars,
   githubForks,
   githubReleases,
-  bluesky,
   lobsters,
   polymarket,
   stackOverflow,

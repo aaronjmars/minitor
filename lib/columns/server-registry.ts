@@ -17,7 +17,6 @@ import { server as githubTrending } from "@/lib/columns/plugins/github-trending/
 import { server as githubIssues } from "@/lib/columns/plugins/github-issues/server";
 import { server as rss } from "@/lib/columns/plugins/rss/server";
 import { server as googleNews } from "@/lib/columns/plugins/google-news/server";
-import { server as bing } from "@/lib/columns/plugins/bing/server";
 import { server as farcaster } from "@/lib/columns/plugins/farcaster/server";
 import { server as mastodon } from "@/lib/columns/plugins/mastodon/server";
 import { server as youtube } from "@/lib/columns/plugins/youtube/server";
@@ -40,7 +39,6 @@ import { server as playReviews } from "@/lib/columns/plugins/play-reviews/server
 import { server as githubStars } from "@/lib/columns/plugins/github-stars/server";
 import { server as githubForks } from "@/lib/columns/plugins/github-forks/server";
 import { server as githubReleases } from "@/lib/columns/plugins/github-releases/server";
-import { server as bluesky } from "@/lib/columns/plugins/bluesky/server";
 import { server as lobsters } from "@/lib/columns/plugins/lobsters/server";
 import { server as polymarket } from "@/lib/columns/plugins/polymarket/server";
 import { server as stackOverflow } from "@/lib/columns/plugins/stack-overflow/server";
@@ -68,7 +66,6 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "github-issues": githubIssues,
   rss,
   "google-news": googleNews,
-  bing,
   farcaster,
   mastodon,
   youtube,
@@ -91,7 +88,6 @@ const SERVERS_BY_ID: Record<string, AnyColumnServer> = {
   "github-stars": githubStars,
   "github-forks": githubForks,
   "github-releases": githubReleases,
-  bluesky,
   lobsters,
   polymarket,
   "stack-overflow": stackOverflow,
