@@ -1,6 +1,7 @@
 import { fetchUpstream } from "@/lib/integrations/fetch";
 import type { FeedItem } from "@/lib/columns/types";
 import type { StackOverflowMeta } from "@/lib/columns/plugins/stack-overflow/plugin";
+import { normaliseTags } from "@/lib/utils";
 
 // `StackOverflowMeta` is the renderer contract owned by the stack-overflow
 // plugin; the fetcher here produces `FeedItem<StackOverflowMeta>` so its meta
@@ -119,25 +120,6 @@ function mapQuestion(q: SOQuestion): FeedItem<StackOverflowMeta> | null {
   };
 }
 
-function normaliseTagFilter(tag: string): string {
-  // Stack Exchange supports up to five tags joined by `;` (semicolon = AND).
-  // Accept commas or spaces from the user, normalise, dedupe, and clamp.
-  const parts = tag
-    .split(/[,;\s]+/)
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
-  const seen = new Set<string>();
-  const uniq: string[] = [];
-  for (const p of parts) {
-    if (!seen.has(p)) {
-      seen.add(p);
-      uniq.push(p);
-    }
-    if (uniq.length === 5) break;
-  }
-  return uniq.join(";");
-}
-
 export async function fetchStackOverflowPage(
   mode: StackOverflowMode,
   tag: string,
@@ -152,7 +134,7 @@ export async function fetchStackOverflowPage(
     page: String(Math.max(page, 0) + 1),
   });
 
-  const tagFilter = normaliseTagFilter(tag);
+  const tagFilter = normaliseTags(tag).join(";");
   if (tagFilter) params.set("tagged", tagFilter);
 
   const url = `${BASE}/questions?${params}`;

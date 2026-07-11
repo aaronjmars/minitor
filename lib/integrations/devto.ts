@@ -1,6 +1,7 @@
 import { fetchUpstream } from "@/lib/integrations/fetch";
 import type { FeedItem } from "@/lib/columns/types";
 import type { DevtoMeta } from "@/lib/columns/plugins/devto/plugin";
+import { normaliseTags } from "@/lib/utils";
 
 // `DevtoMeta` is the renderer contract owned by the devto plugin; the fetcher
 // here produces `FeedItem<DevtoMeta>` so its meta lines up with what the devto
@@ -63,26 +64,6 @@ interface DevtoArticle {
   tags?: string;
   user?: DevtoUser;
   organization?: DevtoOrganization;
-}
-
-function normaliseTagFilter(tag: string): string[] {
-  // Accept commas / semicolons / spaces; lowercase, dedupe, clamp to 5 tags
-  // (the API doesn't document a hard cap, but >5 narrows aggressively to no
-  // results on most slices and makes the cache key explode).
-  const parts = tag
-    .split(/[,;\s]+/)
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
-  const seen = new Set<string>();
-  const uniq: string[] = [];
-  for (const p of parts) {
-    if (!seen.has(p)) {
-      seen.add(p);
-      uniq.push(p);
-    }
-    if (uniq.length === 5) break;
-  }
-  return uniq;
 }
 
 function endpointFor(
@@ -199,7 +180,7 @@ export async function fetchDevtoPage(
   limit: number,
   page: number,
 ): Promise<{ items: FeedItem<DevtoMeta>[]; hasMore: boolean }> {
-  const tags = normaliseTagFilter(tag);
+  const tags = normaliseTags(tag);
   const url = endpointFor(mode, tags, Math.max(limit, 30), page);
   const res = await fetchUpstream(url, {
     headers: {

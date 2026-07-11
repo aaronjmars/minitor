@@ -21,3 +21,20 @@ export function identiconUrl(seed: string): string {
 export function truncateText(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max).trimEnd()}…` : s;
 }
+
+// Normalise a user tag/topic filter: accept commas / semicolons / whitespace,
+// lowercase, drop blanks, dedupe, and clamp to `cap` (most tag APIs narrow
+// aggressively past ~5 tags). Shared by the dev.to / Stack Overflow / topic
+// filters.
+export function normaliseTags(input: string, cap = 5): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of input.split(/[,;\s]+/)) {
+    const tag = raw.trim().toLowerCase();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+    if (out.length === cap) break;
+  }
+  return out;
+}
