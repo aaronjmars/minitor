@@ -40,7 +40,7 @@ function permalinkOf(entry: string): string {
 
 // Each entry body embeds `<a href="…">[link]</a>` (the submission's outbound
 // URL) alongside `<a href="…/comments/…">[comments]</a>`. Pull the `[link]`
-// href so we can tell a link post from a self post.
+// href to use as the item URL when the entry has no permalink.
 function outboundLink(contentHtml: string): string | undefined {
   const html = decodeEntities(contentHtml);
   return html.match(/href=["']([^"']+)["'][^>]*>\s*\[link\]/i)?.[1];
@@ -62,8 +62,6 @@ function parseRedditFeed(xml: string, fallbackSub: string): FeedItem[] {
       entry.match(/<category\b[^>]*\bterm=["']([^"']+)["']/i)?.[1] || fallbackSub;
     const published = getTag(entry, "published") || getTag(entry, "updated");
     const outbound = outboundLink(getTag(entry, "content"));
-    // A self post's `[link]` points back at its own comments page.
-    const isSelf = !outbound || /reddit\.com\/r\/[^/]+\/comments\//i.test(outbound);
 
     items.push({
       id,
@@ -75,9 +73,6 @@ function parseRedditFeed(xml: string, fallbackSub: string): FeedItem[] {
         score: 0,
         comments: 0,
         subreddit,
-        isSelf,
-        externalUrl: isSelf ? undefined : outbound,
-        nsfw: false,
       },
     });
   }

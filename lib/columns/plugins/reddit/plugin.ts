@@ -13,9 +13,6 @@ export interface RedditMeta {
   score: number;
   comments: number;
   subreddit: string;
-  isSelf: boolean;
-  externalUrl?: string;
-  nsfw: boolean;
 }
 
 export const meta: PluginMeta<RedditConfig, RedditMeta> = {
