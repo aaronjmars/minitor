@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { Newspaper } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type ToutiaoConfig = z.infer<typeof schema>;
 
-export interface ToutiaoMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type ToutiaoMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<ToutiaoConfig, ToutiaoMeta> = {
   id: "toutiao",

@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { Tv2 } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type BilibiliHotConfig = z.infer<typeof schema>;
 
-export interface BilibiliHotMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type BilibiliHotMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<BilibiliHotConfig, BilibiliHotMeta> = {
   id: "bilibili-hot",

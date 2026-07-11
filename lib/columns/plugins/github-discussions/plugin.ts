@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MessageSquare } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { GHDiscussionMeta } from "@/lib/integrations/github-discussions";
 
 // The owner/name shape is validated at fetch time by
 // `lib/integrations/github-discussions.ts:parseRepo` (same regex). Mirroring
@@ -18,19 +19,8 @@ export const schema = z.object({
 
 export type GHDiscussionsConfig = z.infer<typeof schema>;
 
-// Renderer-facing meta. Mirrors `GHDiscussionMeta` in the integration but kept
-// local so the plugin owns its renderer contract. The integration's type is
-// structurally identical; the cast in server.ts is documented there.
-export interface GHDiscussionsMeta {
-  kind: "discussion";
-  repo: string;
-  number: number;
-  upvotes: number;
-  comments: number;
-  isAnswered: boolean;
-  categoryName?: string;
-  categoryEmojiHTML?: string;
-}
+// Renderer-facing meta is owned by the integration that produces it.
+export type GHDiscussionsMeta = GHDiscussionMeta;
 
 export const meta: PluginMeta<GHDiscussionsConfig, GHDiscussionsMeta> = {
   id: "github-discussions",

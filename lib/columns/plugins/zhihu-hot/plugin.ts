@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { MessageCircleQuestion } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type ZhihuHotConfig = z.infer<typeof schema>;
 
-export interface ZhihuHotMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type ZhihuHotMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<ZhihuHotConfig, ZhihuHotMeta> = {
   id: "zhihu-hot",

@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   defineColumnServer,
-  type FeedItem,
   type ServerFetcher,
 } from "@/lib/columns/types";
 import { fetchDiscussions } from "@/lib/integrations/github-discussions";
@@ -24,15 +23,7 @@ const fetch: ServerFetcher<GHDiscussionsConfig, GHDiscussionsMeta> = async (
   // follow the same pattern as github-actions and producthunt: pull a generous
   // batch once and slice it for pagination via `sliceForPage`.
   const items = await fetchDiscussions(repo, config.mode, 50);
-  // The integration produces `FeedItem<GHDiscussionMeta>`; structurally
-  // identical to `GHDiscussionsMeta` (the renderer contract owned by this
-  // plugin). One-line cast keeps the ownership split clear: plugin owns the
-  // renderer contract, integration owns the fetch shape — same pattern
-  // github-actions uses.
-  return sliceForPage(
-    items as FeedItem<GHDiscussionsMeta>[],
-    cursor,
-  );
+  return sliceForPage(items, cursor);
 };
 
 export const server = defineColumnServer<

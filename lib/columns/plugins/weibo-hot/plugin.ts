@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { Sparkles } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type WeiboHotConfig = z.infer<typeof schema>;
 
-export interface WeiboHotMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type WeiboHotMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<WeiboHotConfig, WeiboHotMeta> = {
   id: "weibo-hot",

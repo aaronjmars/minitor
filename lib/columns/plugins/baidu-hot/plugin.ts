@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { Search } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type BaiduHotConfig = z.infer<typeof schema>;
 
-export interface BaiduHotMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type BaiduHotMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<BaiduHotConfig, BaiduHotMeta> = {
   id: "baidu-hot",

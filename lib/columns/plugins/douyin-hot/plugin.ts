@@ -1,18 +1,13 @@
 import { z } from "zod";
 import { Video } from "lucide-react";
 import type { PluginMeta } from "@/lib/columns/types";
+import type { NewsNowItemMeta } from "@/lib/columns/plugins/_newsnow/renderer";
 
 export const schema = z.object({});
 
 export type DouyinHotConfig = z.infer<typeof schema>;
 
-export interface DouyinHotMeta {
-  kind: "newsnow";
-  platform: string;
-  platformLabel: string;
-  rank: number;
-  info?: string;
-}
+export type DouyinHotMeta = NewsNowItemMeta;
 
 export const meta: PluginMeta<DouyinHotConfig, DouyinHotMeta> = {
   id: "douyin-hot",
