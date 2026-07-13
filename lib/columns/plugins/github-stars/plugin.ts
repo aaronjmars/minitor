@@ -26,6 +26,9 @@ export const meta: PluginMeta<GHStarsConfig, GHStarsMeta> = {
   },
   capabilities: {
     paginated: true,
+    // Hard requirement, not just a rate-limit bump: the stargazers list is
+    // auth-gated (401 without a token), so surface it to the UI for dimming.
+    requiresEnv: ["GITHUB_TOKEN"],
     rateLimitHint:
       "Requires GITHUB_TOKEN — GitHub auth-gates the stargazers list (401 without a token). 5000 req/hr with one.",
   },

@@ -48,6 +48,9 @@ export const meta: PluginMeta<GHDiscussionsConfig, GHDiscussionsMeta> = {
   },
   capabilities: {
     paginated: true,
+    // Hard requirement, not just a rate-limit bump: the GraphQL API gives
+    // unauthenticated requests ~0 quota (403), so surface it for UI dimming.
+    requiresEnv: ["GITHUB_TOKEN"],
     rateLimitHint:
       "Requires GITHUB_TOKEN — the GraphQL API gives unauthenticated requests ~0 quota (403). 5000 req/hr with one.",
   },
