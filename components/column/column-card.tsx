@@ -83,7 +83,14 @@ export function ColumnCard({ column }: { column: Column }) {
     s.pendingRefreshIds.has(column.id),
   );
   const clearPendingRefresh = useDeckStore((s) => s.clearPendingRefresh);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const searchActive = searchQuery.trim().length > 0;
+  // Seeded from the query rather than hardcoded false: a column that mounts
+  // with a query already in the store (collapse/expand, tab switch) shows its
+  // search row on the first paint instead of flickering it in a frame later.
+  const [searchOpen, setSearchOpen] = useState(searchActive);
+  // Mirrors `searchActive` so the adjustment below can tell a transition from
+  // a steady state. See the comment there for why that distinction matters.
+  const [prevSearchActive, setPrevSearchActive] = useState(searchActive);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isFetchingRaw, setIsFetching] = useState(false);
@@ -140,7 +147,6 @@ export function ColumnCard({ column }: { column: Column }) {
   // never widens past the persisted-filter results, matching the operator's
   // mental model: filters decide what the column *contains*, search decides
   // what they're looking at *right now* inside that subset.
-  const searchActive = searchQuery.trim().length > 0;
   const visibleItems = useMemo(() => {
     if (!searchActive) return filteredItems;
     return filteredItems.filter((it) => itemMatchesSearchQuery(it, searchQuery));
@@ -156,36 +162,37 @@ export function ColumnCard({ column }: { column: Column }) {
   }, [alertTerms, visibleItems]);
   const matchCount = matchedItemIds.size;
 
-  // Auto-open the search row when a query already exists on mount — covers
-  // the case where the operator collapsed/expanded a column or switched tabs
-  // and the search state was preserved in-session. Closing collapses the row
-  // visually but never clears the query, so re-opening shows what they last
-  // typed (until they reload or manually clear).
-  useEffect(() => {
-    // set-state-in-effect is suppressed, not fixed: the open state is sticky
-    // by design, so it can't be derived as `searchOpen || searchActive` —
-    // that would auto-close the row the moment the query is cleared, which is
-    // exactly the behaviour the note below rules out. The cascade is one
-    // bounded extra render on the mount-with-existing-query path.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (searchActive && !searchOpen) setSearchOpen(true);
-    // intentionally only react to searchActive flipping true — don't auto-
-    // close when the operator clears the query mid-type; let them keep the
-    // input visible to keep typing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchActive]);
+  // Two things force the search row open, and both are state adjustments, so
+  // they run during render rather than from an effect — React re-runs the
+  // component immediately, before paint, with no cascading commit.
+  //
+  // 1. The query going from empty to non-empty. This must be edge-triggered,
+  //    not condition-triggered: the "Esc" button and the toolbar toggle both
+  //    close the row *without* clearing the query, so a plain
+  //    `searchActive && !searchOpen` test would immediately re-open it and
+  //    make the row impossible to dismiss. Comparing against the previous
+  //    value is what keeps it a transition. Deliberately one-way — clearing
+  //    the query mid-type leaves the row up so the operator can keep typing.
+  // 2. The `/` shortcut, routed here by the deck-board listener through
+  //    `pendingSearchOpen`. That signal is one-shot and drained by the effect
+  //    below on the same commit, so it is already edge-shaped.
+  //
+  // The mount case (a query that survived a collapse/expand or a tab switch)
+  // is handled by seeding `searchOpen` from `searchActive` above, not here.
+  if (searchActive !== prevSearchActive) {
+    setPrevSearchActive(searchActive);
+    if (searchActive) setSearchOpen(true);
+  }
+  if (pendingSearchOpen === column.id && !searchOpen) {
+    setSearchOpen(true);
+  }
 
-  // React to the `/` keyboard shortcut routed via the store. The deck-board
-  // listener sets `pendingSearchOpen` to this column's id; we open the search
-  // row, focus the input, then clear the signal so a future `/` keypress
-  // re-fires cleanly.
+  // Left with the two jobs that genuinely belong in an effect: moving DOM
+  // focus, and draining the one-shot signal so a later `/` re-fires. The row
+  // is already committed by the time this runs, because the adjustment above
+  // resolves before React commits the tree.
   useEffect(() => {
     if (pendingSearchOpen !== column.id) return;
-    // Syncing local state from an external store signal is effect-shaped by
-    // nature — the keypress happens outside this component and is routed here
-    // through the store, so there is no render-time value to derive from.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSearchOpen(true);
     requestAnimationFrame(() => searchInputRef.current?.focus());
     clearPendingSearchOpen(column.id);
   }, [pendingSearchOpen, column.id, clearPendingSearchOpen]);
